@@ -9,6 +9,7 @@ from keras.layers import Dense, MaxPooling3D
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D
+from keras.layers.core import Dropout
 from sys import argv, exit
 from glob import glob
 from os.path import basename, exists
@@ -46,7 +47,7 @@ def set_images(source_dir):
 
 
 
-def feature_extraction(images, temp_dir, batch_size, tensor_dim, feature_dim=3, use_patch=False, parameters=None, normalize=False, clobber=False):
+def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=3, use_patch=False, parameters=None, normalize=False, clobber=False):
     '''Extracts the features from the PET images according to option set in feature type.
     Feature type options: 
         1) Full image (no features extracted): return 3d array
@@ -115,8 +116,8 @@ def feature_extraction(images, temp_dir, batch_size, tensor_dim, feature_dim=3, 
                         X[j]=pet[j,:,:]
                         Y[j]=label[j,:,:]
                     elif feature_dim==1:
-                        z=k % image_shape[1]
-                        y=k % image_shape[2]
+                        z=int(j / (image_dim[1]))
+                        y=j-z*image_dim[1] 
                         X[j]=pet[z,y,:]
                         Y[j]=label[z,y,:]
 
@@ -137,11 +138,18 @@ def define_arch(shape,feature_dim=3):
     # create model
     model = Sequential()
     if feature_dim == 1 : 
-        model.add(Conv1D( 32, 3, activation='relu',input_shape=shape))
+        model.add(ZeroPadding1D(padding=(1),batch_input_shape=shape))
+        model.add(Conv1D( 16, 3, activation='relu',input_shape=shape))
+        model.add(ZeroPadding1D(padding=(1)))
+        model.add(Conv1D( 16, 3, activation='relu'))
+        #model.add(Dropout(0.2))
+        model.add(Dense(16))
+        model.add(Dense(1, activation="softmax"))
     elif feature_dim == 2 : 
         model.add(ZeroPadding2D(padding=(1, 1),batch_input_shape=shape,data_format="channels_last" ))
-        model.add(Conv2D( 1 , [3,3],  activation='relu'))
-        model.add(Dense(1))
+        model.add(Conv2D( 16 , [3,3],  activation='relu'))
+
+        model.add(Dense(16))
         model.add(Dense(1))
 
     else  :
@@ -158,10 +166,11 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     #1) Organize inputs into a data frame, match each PET image with label image
     images = set_images(source_dir)
     #2) Set up dimensions of tensors to be used for training and testing
-    image_dim =  volumeFromFile(images.iloc[0].label).sizes[0:3] 
+    label_fn=images.iloc[0].label
+    image_dim =  volumeFromFile(label_fn).sizes[0:3] 
     if feature_dim ==3 : tensor_dim = [batch_size]+image_dim
     elif feature_dim ==2 : tensor_dim = [batch_size*image_dim[0]]+image_dim[1:3]
-    elif feature_dim ==1 : tensor_dim = [batch_size*image_dim[0]*image_dim[1]]+image_dim[2]
+    elif feature_dim ==1 : tensor_dim = [batch_size*image_dim[0]*image_dim[1]]+[image_dim[2]]
     input_shape=  tensor_dim + [1]
     #3) Define the inputs and outputs to system archetecture
     print (input_shape)
@@ -172,7 +181,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     nfolds=np.random.multinomial(nbatches,ratios)
     total_folds = sum(nfolds)
     temp_dir = target_dir + os.sep + 'chunk'
-    X_list, Y_list = feature_extraction(images, temp_dir, batch_size, tensor_dim,  feature_dim=feature_dim, normalize=True, clobber=clobber )
+    X_list, Y_list = feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim, normalize=True, clobber=clobber )
     for fold in range(total_folds):
         print ('Fold =', fold)
         train_i = (fold + np.arange(0, nfolds[0])) % nbatches
@@ -192,23 +201,31 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
             for X_csv, Y_csv in zip(X_train_list, Y_train_list):
                 X_train = np.load(X_csv)
                 Y_train = np.load(Y_csv)
-                print(X_train.shape)
-                print(Y_train.shape)
                 model.fit(X_train, Y_train, batch_size=tensor_dim[0],  nb_epoch=1)
-        
+                #r= model.train_on_batch(X_train, Y_train)
+                #print(r)
         for X_csv, Y_csv in zip(X_test_list, Y_test_list):
             X_test = np.load(X_csv)
             Y_test = np.load(Y_csv)
-            scores = model.evaluate(X_test, Y_test)
+            scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
             print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
-    
+            
+            X_predict=model.predict(X_test, batch_size=tensor_dim[0] )
+            out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
+            X_predict=X_predict.reshape(image_dim)
+            if exists(out_fn) : os.remove(out_fn)
+            outfile = volumeLikeFile(label_fn, out_fn)
+            outfile.data = X_predict
+            outfile.writeFile()
+            outfile.closeVolume()
+        break 
     return 0
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=1, help='size of batch')
+    parser.add_argument('--batch-size', dest='batch_size', type=int, default=1, help='size of batch')
     parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
     parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='target directory')
