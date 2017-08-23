@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import pandas as pd
+import h5py
 from pyminc.volumes.factory import *
 import os
 from re import sub
@@ -19,10 +20,6 @@ import argparse
 
 # fix random seed for reproducibility
 np.random.seed(8)
-
-def set_csv(temp, A , feature_dim, batch, n, m) :
-    return temp +os.sep+ A + '_type-'+str(feature_dim)+'_chunk-'+str(batch)+'-'+str(n)+'-'+str(m)
-
 
 def set_images(source_dir):
     '''Creates a DataFrame that contains a list of all the subjects along with their PET images, T1 MRI images and labeled images.'''
@@ -45,9 +42,23 @@ def set_images(source_dir):
         out = pd.concat([out, subject_df ])
     return out
 
+def generator(f, batch_size, tensor_max):
+    i=0
+    start=i*batch_size
+    end=start + batch_size
+    while end < tensor_max:
+        start=i*batch_size
+        end=start + batch_size #(i+1)*batch_size 
+        X = f['image'][start:end,]
+        Y = f['label'][start:end,]
+        i+=1
+        yield [X,Y]
+       
 
 
-def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=3, use_patch=False, parameters=None, normalize=False, clobber=False):
+
+
+def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=3, use_patch=False, parameters=None, normalize=True, clobber=False):
     '''Extracts the features from the PET images according to option set in feature type.
     Feature type options: 
         1) Full image (no features extracted): return 3d array
@@ -62,10 +73,8 @@ def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feat
             Parameters = integer, size of kernel 
     '''
 
-    m=images.shape[0]
+    nImages=images.shape[0]
     if not exists(temp_dir): os.makedirs(temp_dir)
-    X_list=np.array([])
-    Y_list=np.array([])   
     
     #image_dim = list(volumeFromFile(images.iloc[0,].pet).data.shape)
     #if len(image_dim) == 4: image_dim = image_dim[1:4]
@@ -78,58 +87,62 @@ def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feat
 
 
     tensor_samples = int(tensor_dim[0])
-    dim_range = int(tensor_samples / batch_size)
+    dim_range = int(tensor_samples / nImages )
+    tensor_dim = tensor_dim + [1] 
+    slice_dim = [dim_range] + tensor_dim[1:]  
+    out_fn = temp_dir +os.sep + "image_label_batch-size-"+str(batch_size) +'_type-' + str(feature_dim) + ".hdf5"
 
-    for b in np.arange(0, m, batch_size, dtype=int):
-        #chunks represents the chunks of image data that will go in a single batch
-        chunks = np.arange(b, b + batch_size )
-        chunks = chunks[ chunks < m ]
+    maxshape = [None,] + slice_dim[1:] 
 
-        X_csv=set_csv(temp_dir,'X', feature_dim, chunks[0], batch_size, m)
-        Y_csv=set_csv(temp_dir,'Y', feature_dim, chunks[0], batch_size, m)
-        X_list = np.append(X_list, [X_csv+'.npy'])
-        Y_list = np.append(Y_list, [Y_csv+'.npy'])
-        if not exists(X_csv+'.npy') or not exists(Y_csv+'.npy') or clobber==True :
-            #for each image in this chunk...
-            for i in chunks:
-                #identify and load the corresponding pet and label images
-                row=images.iloc[i, ] 
-                pet=volumeFromFile(row.pet).data
-                label=volumeFromFile(row.label).data
-                #allocate the tensors in which we will store the chunk data
-                try : X
-                except NameError :X= np.zeros(tensor_dim) 
 
-                try : Y
-                except : Y= np.zeros(tensor_dim) 
-                
-                #sum the pet image if it is a 4d volume
-                if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
-                #normalize the pet volume between 0 and 1
-                if normalize==True: pet = (pet - pet.min()) / (pet.max() -pet.min())
+    print('tensor dim', tensor_dim)
+    print('slice dim', slice_dim)
+    if not exists(out_fn) or clobber==True :
 
-                for j in range(dim_range):
-                    if feature_dim ==3 : 
-                        X[j]=pet
-                        Y[j]=label
-                    elif feature_dim ==2 :
-                        X[j]=pet[j,:,:]
-                        Y[j]=label[j,:,:]
-                    elif feature_dim==1:
-                        z=int(j / (image_dim[1]))
-                        y=j-z*image_dim[1] 
-                        X[j]=pet[z,y,:]
-                        Y[j]=label[z,y,:]
+        f=h5py.File(out_fn, "w")
+        X_set = f.create_dataset("image", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+        Y_set = f.create_dataset("label", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+        #for each image in this chunk...
+        for i in range(nImages): 
+            #identify and load the corresponding pet and label images
+            row=images.iloc[i, ] 
+            pet=volumeFromFile(row.pet).data
+            label=volumeFromFile(row.label).data
+            if normalize: pet = (pet - pet.min())/(pet.max() - pet.min())
+            if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
+            pet=pet.reshape(list(pet.shape)+[1])
+            label=label.reshape(list(label.shape)+[1])
 
-            X=X.reshape( list(X.shape) + [1] )
-            Y=Y.reshape( list(Y.shape) + [1] )
-            np.save(X_csv, X)
-            np.save(Y_csv, Y)
+            #allocate the tensors in which we will store the chunk data
+            try : X
+            except NameError :X= np.zeros(slice_dim) 
+
+            try : Y
+            except NameError : Y= np.zeros(slice_dim) 
+            
+            #sum the pet image if it is a 4d volume
+            for j in range(dim_range):
+                if feature_dim ==3 : 
+                    X[j]=pet
+                    Y[j]=label
+                elif feature_dim ==2 :
+                    X[j]=pet[j,:,:]
+                    Y[j]=label[j,:,:]
+                elif feature_dim==1:
+                    z=int(j / (image_dim[1]))
+                    y=j-z*image_dim[1] 
+                    X[j]=pet[z,y,:,:]
+                    Y[j]=label[z,y,:,:]
+            row_count = i*slice_dim[0]
+            X_set[row_count:]=X
+            X_set.resize( (i+1)*slice_dim[0], axis=0)
+            Y_set[row_count:]=Y
+            Y_set.resize( (i+1)*slice_dim[0], axis=0)
             del X
             del Y
 
 
-    return [X_list, Y_list] 
+    return out_fn 
 
 
 
@@ -140,15 +153,14 @@ def define_arch(shape,feature_dim=3):
     if feature_dim == 1 : 
         model.add(ZeroPadding1D(padding=(1),batch_input_shape=shape))
         model.add(Conv1D( 16, 3, activation='relu',input_shape=shape))
-        model.add(ZeroPadding1D(padding=(1)))
-        model.add(Conv1D( 16, 3, activation='relu'))
+        #model.add(ZeroPadding1D(padding=(1)))
+        #model.add(Conv1D( 16, 3, activation='relu'))
         #model.add(Dropout(0.2))
         model.add(Dense(16))
         model.add(Dense(1, activation="softmax"))
     elif feature_dim == 2 : 
         model.add(ZeroPadding2D(padding=(1, 1),batch_input_shape=shape,data_format="channels_last" ))
         model.add(Conv2D( 16 , [3,3],  activation='relu'))
-
         model.add(Dense(16))
         model.add(Dense(1))
 
@@ -161,66 +173,58 @@ def define_arch(shape,feature_dim=3):
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     return model
+from fractions import gcd
 
-def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_patch=False, batch_size=2, nb_epoch=1,shuffle_training=True, clobber=False ):
+def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_patch=False, batch_size=2, nb_epoch=10,shuffle_training=True, clobber=False ):
     #1) Organize inputs into a data frame, match each PET image with label image
     images = set_images(source_dir)
     #2) Set up dimensions of tensors to be used for training and testing
     label_fn=images.iloc[0].label
     image_dim =  volumeFromFile(label_fn).sizes[0:3] 
-    if feature_dim ==3 : tensor_dim = [batch_size]+image_dim
-    elif feature_dim ==2 : tensor_dim = [batch_size*image_dim[0]]+image_dim[1:3]
-    elif feature_dim ==1 : tensor_dim = [batch_size*image_dim[0]*image_dim[1]]+[image_dim[2]]
-    input_shape=  tensor_dim + [1]
+    nImages = images.shape[0]
+    if feature_dim ==3 : tensor_dim = [nImages]+image_dim
+    elif feature_dim ==2 : tensor_dim = [nImages*image_dim[0]]+image_dim[1:3]
+    elif feature_dim ==1 : tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
+    nbatches = ceil(tensor_dim[0] / batch_size)
+    print(batch_size, nbatches, tensor_dim[0])
+    print(tensor_dim[0] / batch_size)
+    #if nbatches % batch_size != 0 : batch_size = gcd(nbatches, batch_size)
+    #print( tensor_dim[0] / batch_size, batch_size)
+
+    input_shape= [batch_size] +  tensor_dim[1:] + [1]
     #3) Define the inputs and outputs to system archetecture
-    print (input_shape)
+    print('Feature dim', feature_dim)
+    print ('Input Node shape:', input_shape)
     model = define_arch(input_shape, feature_dim)
 
-    nImages = images.shape[0]
-    nbatches = ceil(nImages / batch_size)
+
+    nUnique = tensor_dim[0] / nImages
+
     nfolds=np.random.multinomial(nbatches,ratios)
     total_folds = sum(nfolds)
     temp_dir = target_dir + os.sep + 'chunk'
-    X_list, Y_list = feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim, normalize=True, clobber=clobber )
-    for fold in range(total_folds):
-        print ('Fold =', fold)
-        train_i = (fold + np.arange(0, nfolds[0])) % nbatches
-        test_i =  (fold + np.arange(nfolds[0], nfolds[0] + nfolds[1])) % nbatches
-       
-        if shuffle_training : 
-            shuffle(train_i)
-        
-        X_train_list=X_list[ train_i  ]
-        Y_train_list=Y_list[ train_i ]
-        X_test_list=X_list[ test_i ]
-        Y_test_list=Y_list[ test_i ]
-        
-        for e in range(nb_epoch):
-            #for i in np.arange(0, n, batch_size, dtype=int):
-            print(e)
-            for X_csv, Y_csv in zip(X_train_list, Y_train_list):
-                X_train = np.load(X_csv)
-                Y_train = np.load(Y_csv)
-                model.fit(X_train, Y_train, batch_size=tensor_dim[0],  nb_epoch=1)
-                #r= model.train_on_batch(X_train, Y_train)
-                #print(r)
-        for X_csv, Y_csv in zip(X_test_list, Y_test_list):
-            X_test = np.load(X_csv)
-            Y_test = np.load(Y_csv)
-            scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
-            print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
-            
-            X_predict=model.predict(X_test, batch_size=tensor_dim[0] )
-            out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
-            X_predict=X_predict.reshape(image_dim)
-            if exists(out_fn) : os.remove(out_fn)
-            outfile = volumeLikeFile(label_fn, out_fn)
-            outfile.data = X_predict
-            outfile.writeFile()
-            outfile.closeVolume()
-        break 
-    return 0
+    out_fn = feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
+    f = h5py.File(out_fn, 'r')
 
+    model.fit_generator( generator(f, batch_size, tensor_dim[0] ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
+    #for e in range(nb_epoch):
+        #for X_test, Y_test =generator(f, nfolds[1]*batch_size, np.array((fold + nfolds[0]) * batch_size))
+        #X_test, Y_test =generator(f, nfolds[1]*batch_size, np.array((fold + nfolds[0]) * batch_size))
+        #scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
+        #print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
+        
+        #X_predict=model.predict(X_test, batch_size=tensor_dim[0] )
+        #out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
+        #X_predict=X_predict.reshape(image_dim)
+        #if exists(out_fn) : os.remove(out_fn)
+        #outfile = volumeLikeFile(label_fn, out_fn)
+        #outfile.data = X_predict
+        #outfile.writeFile()
+        #outfile.closeVolume()
+
+
+    return 0
+   
 
 if __name__ == '__main__':
 
