@@ -23,10 +23,10 @@ Data is already formatted and ready to go. Basic python program with Keras for i
 
 ## Goals
 
-1) Test different network architectures
-2) Test different features (e.g., full 3D volumes, 2D slices, 1D profiles)
-3) Does network generalize to radiotracers on which it has not been trained?
-4) Does training on MRI as well as PET help?
+1) Find optimal network architecture
+2) Evaluate different features (e.g., full 3D volumes, 2D slices, 1D profiles)
+3) Determine if network generalizes to radiotracers on which it has not been trained
+4) Determine if training on MRI as well as PET helps improve performance
 
 
 
