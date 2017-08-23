@@ -12,11 +12,7 @@ Create brain masks for PET images across a wide variety of PET images.
 ### Open
 1) Simulated PET images: 15 subjects x 3 radiotracers (FDG, L-DOPA, Raclopride)
 
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdg.png" width=200 >
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdopa.png" width=200 >
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/raclopride.png" width=200>
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/t1.png" width=200 >
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/brainmask.png" width=200>
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdg.png" alt="FDG PET" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdopa.png" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/raclopride.png" width=150> <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/t1.png" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/brainmask.png" width=150>
 
 2) ADNI - ???
 ### Closed
