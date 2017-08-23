@@ -12,11 +12,11 @@ Create brain masks for PET images across a wide variety of PET images.
 ### Open
 1) Simulated PET images: 15 subjects x 3 radiotracers (FDG, L-DOPA, Raclopride)
 
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/fdg.png" width=200 >
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/fdopa.png" width=200 >
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/raclopride.png" width=200>
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/t1.png" width=200 >
-<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/brainmask.png" width=200>
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdg.png" width=200 >
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdopa.png" width=200 >
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/raclopride.png" width=200>
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/t1.png" width=200 >
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/brainmask.png" width=200>
 
 2) ADNI - ???
 ### Closed
@@ -31,10 +31,4 @@ Data is already formatted and ready to go. Basic python program with Keras for i
 2) Test different features (e.g., full 3D volumes, 2D slices, 1D profiles)
 
 
-
-
-
-
-
-pet_brainmask_convnet
 
