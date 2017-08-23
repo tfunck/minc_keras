@@ -14,7 +14,7 @@ Create brain masks for PET images across a wide variety of PET images.
 
 <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdg.png" alt="FDG PET" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdopa.png" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/raclopride.png" width=150> <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/t1.png" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/brainmask.png" width=150>
 
-2) ADNI - ???
+2) ADNI (Not sure yet)
 ### Closed
 3) 46 subjects x FMZ , 31 x FDG, 26 x Raclopride
 
