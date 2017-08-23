@@ -11,6 +11,13 @@ Create brain masks for PET images across a wide variety of PET images.
 ## Data Set
 ### Open
 1) Simulated PET images: 15 subjects x 3 radiotracers (FDG, L-DOPA, Raclopride)
+
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/fdg.png" width=200 >
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/fdopa.png" width=200 >
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/raclopride.png" width=200>
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/t1.png" width=200 >
+<img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/brainmask.png" width=200>
+
 2) ADNI - ???
 ### Closed
 3) 46 subjects x FMZ , 31 x FDG, 26 x Raclopride
