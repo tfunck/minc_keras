@@ -162,8 +162,8 @@ def define_arch(shape,feature_dim=3):
         model.add(Dense(1, activation="tanh"))
     elif feature_dim == 2 : 
         model.add(ZeroPadding2D(padding=(1, 1),batch_input_shape=shape,data_format="channels_last" ))
-        model.add(Conv2D( 16 , [3,3],  activation='relu'))
-        model.add(Dense(16))
+        model.add(Conv2D( 4 , [3,3],  activation='relu'))
+        model.add(Dense(4))
         model.add(Dense(1))
 
     else  :
@@ -221,7 +221,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     temp_df=pd.DataFrame([], columns=list(images.columns)+['category'])
     #this for-loop is for assigning the test/train categorgy to the images data frame
     for name, df in images.groupby(['subject']):
-        df['category'] = image_set[i] 
+        df.loc['category'] = image_set[i] 
         temp_df = pd.concat([temp_df, df]) 
         i+=1
     images = temp_df
@@ -251,7 +251,6 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
         model.fit_generator( generator(f, batch_size, '/train' ), steps_per_epoch=n_train_batches, epochs=nb_epoch, validation_data=generator(f, batch_size, '/test' ), validation_steps=n_test_batches , max_queue_size=10, workers=1, use_multiprocessing=True )
-        #model.fit_generator( generator(f, batch_size, '/train' ), steps_per_epoch=n_train_batches, epochs=nb_epoch, max_queue_size=10, workers=1, use_multiprocessing=True )
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
