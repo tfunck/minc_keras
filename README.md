@@ -36,11 +36,10 @@ Data is already formatted and ready to go. Basic python program with Keras for i
 3) numpy 
 4) scipy
 5) h5py
-6) pyminc
-7) keras
+6) keras
 
 To make sure that everything is installed, try running:
-__pip3 install pandas numpy scipy h5py pyminc keras__
+__pip3 install pandas numpy scipy h5py keras__
 
 
 
