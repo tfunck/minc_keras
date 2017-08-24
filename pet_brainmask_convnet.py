@@ -43,7 +43,7 @@ def set_images(source_dir):
         out = pd.concat([out, subject_df ])
     return out
 
-def generator(f, batch_size):
+def generator(f, batch_size, data_type):
     i=0
     start=i*batch_size
     end=start + batch_size
@@ -51,13 +51,13 @@ def generator(f, batch_size):
     while True:
         start=i*batch_size
         end=start + batch_size #(i+1)*batch_size 
-        X = f['image'][start:end,]
-        Y = f['label'][start:end,]
+        X = f['image'+data_type][start:end,]
+        Y = f['label'+data_type][start:end,]
         i+=1
         yield [X,Y]
        
 
-def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, feature_dim=3, use_patch=False, parameters=None, normalize=True, clobber=False):
+def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim,nfolds, feature_dim=3 , use_patch=False, parameters=None, normalize=True, clobber=False):
     '''Extracts the features from the PET images according to option set in feature type.
     Feature type options: 
         1) Full image (no features extracted): return 3d array
@@ -71,12 +71,16 @@ def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, fe
         5) 3D Kernel: return list of 3d patches from full image
             Parameters = integer, size of kernel 
     '''
-
     nImages=images.shape[0]
     temp_dir = target_dir + os.sep + 'chunk'
     if not exists(temp_dir): os.makedirs(temp_dir)
 
+    n_train=nfolds[0]*3    
+    n_test=nfolds[1]*3    
 
+    #test_tensor_dim=[tensor_dim[0] / n_test] + tensor_dim[1:3]
+    #train_tensor_dim=[tensor_dim[0] / n_train] + tensor_dim[1:3]
+    
     tensor_samples = int(tensor_dim[0])
     dim_range = int(tensor_samples / nImages )
     tensor_dim = tensor_dim + [1] 
@@ -88,8 +92,10 @@ def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, fe
 
     if not exists(out_fn) or clobber==True :
         f=h5py.File(out_fn, "w")
-        X_set = f.create_dataset("image", shape=slice_dim , maxshape=tensor_dim, dtype='f')
-        Y_set = f.create_dataset("label", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+        X_train_set = f.create_dataset("image/train", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+        X_test_set = f.create_dataset("image/test", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+        Y_train_set = f.create_dataset("label/train", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+        Y_test_set = f.create_dataset("label/test", shape=slice_dim , maxshape=tensor_dim, dtype='f')
         #for each image in this chunk...
         for i in range(nImages): 
             #identify and load the corresponding pet and label images
@@ -124,10 +130,16 @@ def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, fe
                     X[j]=pet[z,y,:,:]
                     Y[j]=label[z,y,:,:]
             row_count = i*slice_dim[0]
-            X_set[row_count:]=X
-            X_set.resize( (i+1)*slice_dim[0], axis=0)
-            Y_set[row_count:]=Y
-            Y_set.resize( (i+1)*slice_dim[0], axis=0)
+            if images.iloc[i].category == 'train':
+                X_train_set[row_count:]=X
+                X_train_set.resize( (i+1)*slice_dim[0], axis=0)
+                Y_train_set[row_count:]=Y
+                Y_train_set.resize( (i+1)*slice_dim[0], axis=0)
+            if images.iloc[i].category == 'test':
+                X_test_set[row_count:]=X
+                X_test_set.resize( (i+1)*slice_dim[0], axis=0)
+                Y_test_set[row_count:]=Y
+                Y_test_set.resize( (i+1)*slice_dim[0], axis=0)
             del X
             del Y
 
@@ -147,7 +159,7 @@ def define_arch(shape,feature_dim=3):
         #model.add(Conv1D( 16, 3, activation='relu'))
         #model.add(Dropout(0.2))
         model.add(Dense(16))
-        model.add(Dense(1))
+        model.add(Dense(1, activation="tanh"))
     elif feature_dim == 2 : 
         model.add(ZeroPadding2D(padding=(1, 1),batch_input_shape=shape,data_format="channels_last" ))
         model.add(Conv2D( 16 , [3,3],  activation='relu'))
@@ -174,7 +186,6 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     minc_label_f = h5py.File(label_fn, 'r')
     label_img = np.array(minc_label_f['minc-2.0/']['image']['0']['image'])
     image_dim = list(label_img.shape) #load label file and get its dimensions
-    print(image_dim)
     nImages = images.shape[0] #the number of images is the number of rows in the images dataframe
 
     ### 3) Set up dimensions of data tensors to be used for training and testing. all of the
@@ -186,7 +197,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     
     #This little bit of code changes the batch_size so that it divides the first dimension
     #of the data tensor without remainder. This way the data tensor can be divided into 
-    #equally sized batches
+    #equally sized batche
     if tensor_dim[0] % batch_size != 0:
         for b in range(batch_size, 0, -1):
             if tensor_dim[0] % b == 0 :
@@ -200,22 +211,38 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     model = define_arch(input_shape, feature_dim)
 
     ### 5) Determine number of batches for training, testing, validating
-    nfolds=np.random.multinomial(nbatches,ratios)
+    nSubjects= len(np.unique(images.subject)) #total number of subjects
+    nfolds=np.random.multinomial(nSubjects,ratios) #number of test/train subjects
+    #create a train/test label for each subject
+    image_set = ['train'] * nfolds[0] + ['test'] * nfolds[1]
+    #shuffle so that we don't train/test on the same images every time
+    shuffle(image_set)
+    i=0
+    temp_df=pd.DataFrame([], columns=list(images.columns)+['category'])
+    #this for-loop is for assigning the test/train categorgy to the images data frame
+    for name, df in images.groupby(['subject']):
+        df['category'] = image_set[i] 
+        temp_df = pd.concat([temp_df, df]) 
+        i+=1
+    images = temp_df
+    
     total_folds = sum(nfolds)
 
+    #determine the number test batches
+    n_train_batches =  int(tensor_dim[0] * ratios[0])
+    #determine the number train batches
+    n_test_batches = int(tensor_dim[0] * ratios[1])
+    print('Number of Test Batches', n_test_batches)
+    print('Number of Train Batches', n_train_batches)
     ### 6) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
-    out_fn = feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
+
+    out_fn = feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, nfolds, feature_dim=feature_dim,  clobber=clobber )
     
     #Open the hdf5 for reading
     f = h5py.File(out_fn, 'r')
 
     ### 7) Train network on data
-    '''while True:
-        X,Y= next(generator(f, batch_size, tensor_dim[0] ))
-        print(np.array(X).shape, np.array(Y).shape)
-        if(np.array(X).shape[0] == 31): exit(0)
-        if(np.array(Y).shape[0] == 31): exit(0)
-    '''
+
     if model_name == None:  model_name =target_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5' 
     if exists(model_name) :
     #If user provides a model that has already been trained, load it
@@ -223,8 +250,8 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
-
-        model.fit_generator( generator(f, batch_size ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
+        model.fit_generator( generator(f, batch_size, '/train' ), steps_per_epoch=n_train_batches, epochs=nb_epoch, validation_data=generator(f, batch_size, '/test' ), validation_steps=n_test_batches , max_queue_size=10, workers=1, use_multiprocessing=True )
+        #model.fit_generator( generator(f, batch_size, '/train' ), steps_per_epoch=n_train_batches, epochs=nb_epoch, max_queue_size=10, workers=1, use_multiprocessing=True )
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
@@ -264,6 +291,6 @@ if __name__ == '__main__':
     parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=3, help='Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--clobber', dest='clobber',  action='store_true', default=False,  help='clobber')
     parser.add_argument('--load-model', dest='model_name', default=None,  help='clobber')
-    parser.add_argument('--ratios', dest='ratios', nargs=3, type=float , default=[0.7,0.2,0.1],  help='List of ratios for training, testing, and validating (default = 0.7 0.2 0.1')
+    parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.3],  help='List of ratios for training, testing, and validating (default = 0.7 0.2 0.1')
     args = parser.parse_args()
     pet_brainmask_convnet(args.source_dir, args.target_dir, feature_dim = args.feature_dim, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name)
