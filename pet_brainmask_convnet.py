@@ -5,7 +5,7 @@ import h5py
 from pyminc.volumes.factory import *
 import os
 from re import sub
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, MaxPooling3D
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D
 from keras.preprocessing.image import ImageDataGenerator
@@ -42,11 +42,12 @@ def set_images(source_dir):
         out = pd.concat([out, subject_df ])
     return out
 
-def generator(f, batch_size, tensor_max):
+def generator(f, batch_size):
     i=0
     start=i*batch_size
     end=start + batch_size
-    while end < tensor_max:
+    #while end < tensor_max:
+    while True:
         start=i*batch_size
         end=start + batch_size #(i+1)*batch_size 
         X = f['image'][start:end,]
@@ -127,7 +128,7 @@ def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, fe
             del X
             del Y
 
-    f.close()
+        f.close()
     return out_fn 
 
 
@@ -143,7 +144,7 @@ def define_arch(shape,feature_dim=3):
         #model.add(Conv1D( 16, 3, activation='relu'))
         #model.add(Dropout(0.2))
         model.add(Dense(16))
-        model.add(Dense(1, activation="softmax"))
+        model.add(Dense(1))
     elif feature_dim == 2 : 
         model.add(ZeroPadding2D(padding=(1, 1),batch_input_shape=shape,data_format="channels_last" ))
         model.add(Conv2D( 16 , [3,3],  activation='relu'))
@@ -161,53 +162,80 @@ def define_arch(shape,feature_dim=3):
     return model
 from fractions import gcd
 
-def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_patch=False, batch_size=2, nb_epoch=10,shuffle_training=True, clobber=False ):
-    #1) Organize inputs into a data frame, match each PET image with label image
+def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_patch=False, batch_size=2, nb_epoch=10,shuffle_training=True, clobber=False, model_name=False ):
+    
+    ### 1) Organize inputs into a data frame, match each PET image with label image
     images = set_images(source_dir)
-    #2) 
+    ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
     image_dim =  volumeFromFile(label_fn).sizes[0:3] #load label file and get its dimensions
     nImages = images.shape[0] #the number of images is the number of rows in the images dataframe
 
-    #2) Set up dimensions of tensors to be used for training and testing
+    ### 3) Set up dimensions of data tensors to be used for training and testing. all of the
+    #data that we will use for training with be stored here.
     if feature_dim ==3 : tensor_dim = [nImages]+image_dim
     elif feature_dim ==2 : tensor_dim = [nImages*image_dim[0]]+image_dim[1:3]
     elif feature_dim ==1 : tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
-    nbatches = ceil(tensor_dim[0] / batch_size)
-    nUnique = tensor_dim[0] / nImages
-    input_shape= [batch_size] +  tensor_dim[1:] + [1]
+    nUnique =int( tensor_dim[0] / nImages)
+    
+    #This little bit of code changes the batch_size so that it divides the first dimension
+    #of the data tensor without remainder. This way the data tensor can be divided into 
+    #equally sized batches
+    if tensor_dim[0] % batch_size != 0:
+        for b in range(batch_size, 0, -1):
+            if tensor_dim[0] % b == 0 :
+                batch_size=b
+                break
 
-    #3) Define architecture of neural network
+    input_shape= [batch_size] +  tensor_dim[1:] + [1]
+    nbatches = ceil(tensor_dim[0] / batch_size)
+    print('batch size: ', batch_size, tensor_dim[0] % batch_size)
+    ### 4) Define architecture of neural network
     model = define_arch(input_shape, feature_dim)
 
-    #4) Determine number of batches for training, testing, validating
+    ### 5) Determine number of batches for training, testing, validating
     nfolds=np.random.multinomial(nbatches,ratios)
     total_folds = sum(nfolds)
 
-    #5) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
+    ### 6) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
     out_fn = feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
     
     #Open the hdf5 for reading
     f = h5py.File(out_fn, 'r')
 
-    #6) Train network on data
-    #FIXME : keep getting <Error: StopIteration>, probably because the batch_size does not divide the first dimension of the tensor with all of the data (i.e., tensor_dim[0] % batch_size != 0)
-    model.fit_generator( generator(f, batch_size, tensor_dim[0] ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
-    
-    #7) Evaluate network #FIXME : does not work at the moment 
+    ### 7) Train network on data
+    '''while True:
+        X,Y= next(generator(f, batch_size, tensor_dim[0] ))
+        print(np.array(X).shape, np.array(Y).shape)
+        if(np.array(X).shape[0] == 31): exit(0)
+        if(np.array(Y).shape[0] == 31): exit(0)
+    '''
+    if exists(model_name) != None and not clobber : 
+    #If user provides a model that has already been trained, load it
+        load_model(target_dir + model_name)
+    else :
+    #If model_name does not exist, or user wishes to write over (clobber) existing model
+    #then train a new model and save it
+        model.fit_generator( generator(f, batch_size ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
+        model.save(target_dir + model_name)
+
+    ### 8) Evaluate network #FIXME : does not work at the moment 
     #scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
     #print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-    #8) Produce prediction #FIXME : does not work at the moment    
-    #X_predict=model.predict(X_test, batch_size=tensor_dim[0] )
-    #out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
-    #X_predict=X_predict.reshape(image_dim)
-    #if exists(out_fn) : os.remove(out_fn)
-    #outfile = volumeLikeFile(label_fn, out_fn)
-    #outfile.data = X_predict
-    #outfile.writeFile()
-    #outfile.closeVolume()
+    ### 9) Produce prediction    
+    start=0
+    end=nUnique
+    X = f['image'][start:end,]
+    X_predict=model.predict(X, batch_size=nUnique )
+    out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
+    X_predict=X_predict.reshape(image_dim)
+    if exists(out_fn) : os.remove(out_fn)
+    outfile = volumeLikeFile(label_fn, out_fn)
+    outfile.data = X_predict
+    outfile.writeFile()
+    outfile.closeVolume()
 
 
     return 0
@@ -222,6 +250,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='target directory')
     parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=3, help='Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--clobber', dest='clobber',  action='store_true', default=False,  help='clobber')
+    parser.add_argument('--load-model', dest='model_name', default=None,  help='clobber')
     parser.add_argument('--ratios', dest='ratios', nargs=3, type=float , default=[0.7,0.2,0.1],  help='List of ratios for training, testing, and validating (default = 0.7 0.2 0.1')
     args = parser.parse_args()
-    pet_brainmask_convnet(args.source_dir, args.target_dir, feature_dim = args.feature_dim, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber)
+    pet_brainmask_convnet(args.source_dir, args.target_dir, feature_dim = args.feature_dim, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name)
