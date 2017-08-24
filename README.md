@@ -1,14 +1,14 @@
 # Deep Pet -- Deep Brain Hackathon 2017
 
 ## Background
-Brain masks are important for PET image processing.
-
-PET brain masks can help improve co-registration to T1 images
+PET is an imaging modality that uses a radioactive tracer attached to a biological metabolite to quantify the structure and function of the brain. Brain masks are important for PET image processing. They can, for example, in helping improve PET-MRI coregistration. However, it is dificult produce a "one size fits all" algorithm for deriving brain masks from PET images that will apply across a wide variety of different radiotracers. This is because the signal distribution varies greatly from one tracer to the next. Deep neural networks may have sufficient flexibility to allow for a generic brain extraction algorithm for PET.
 
 ## Objective
-Create brain masks for PET images across a wide variety of PET images.
+Create brain masks for PET images that performs accureately across a wide variety of types of PET images.
 
 ## Data Set
+The data for the project comes from three sources, two of which are open-access.
+
 ### Open
 1) Simulated PET images: 15 subjects x 3 radiotracers (FDG, L-DOPA, Raclopride)
 
