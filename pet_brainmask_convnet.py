@@ -215,16 +215,14 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
         if(np.array(X).shape[0] == 31): exit(0)
         if(np.array(Y).shape[0] == 31): exit(0)
     '''
-    if model_name != None and not clobber :
+    if model_name == None:  model_name =target_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5' 
+    if exists(model_name) and not clobber:
     #If user provides a model that has already been trained, load it
-        if not exists(target_dir + model_name):
-            load_model(target_dir + model_name)
-        else:
-            print("Error: could not read ",target_dir + model_name )
-            exit(1)
+        load_model(target_dir + model_name)
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
+
         model.fit_generator( generator(f, batch_size ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
         model.save(target_dir + model_name)
 
