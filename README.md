@@ -10,13 +10,13 @@ Create brain masks for PET images that performs accureately across a wide variet
 The data for the project comes from three sources, two of which are open-access.
 
 ### Open
-1) Simulated PET images: 15 subjects x 3 radiotracers (FDG, L-DOPA, Raclopride)
+#### 1) Simulated PET images: 15 subjects x 3 radiotracers (FDG, L-DOPA, Raclopride)
 
 <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdg.png" alt="FDG PET" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/fdopa.png" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/raclopride.png" width=150> <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/t1.png" width=150 > <img src="https://github.com/tfunck/pet_brainmask_convnet/blob/master/readme/brainmask.png" width=150>
 
-2) ADNI (Not sure yet)
+##### 2) ADNI (Not sure yet)
 ### Closed
-3) 46 subjects x FMZ , 31 x FDG, 26 x Raclopride
+##### 3) 46 subjects x FMZ , 31 x FDG, 26 x Raclopride
 
 Data is already formatted and ready to go. Basic python program with Keras for implementing CNN.
 
