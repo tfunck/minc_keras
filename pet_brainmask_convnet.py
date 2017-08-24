@@ -16,6 +16,7 @@ from glob import glob
 from os.path import basename, exists
 from math import ceil
 from random import shuffle
+from shutil import copy
 import argparse
 
 # fix random seed for reproducibility
@@ -170,7 +171,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     images = set_images(source_dir)
     ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
-    minc_label_f = h5py.File(label_fn)
+    minc_label_f = h5py.File(label_fn, 'r')
     label_img = np.array(minc_label_f['minc-2.0/']['image']['0']['image'])
     image_dim = list(label_img.shape) #load label file and get its dimensions
     print(image_dim)
@@ -216,15 +217,15 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
         if(np.array(Y).shape[0] == 31): exit(0)
     '''
     if model_name == None:  model_name =target_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5' 
-    if exists(model_name) and not clobber:
+    if exists(model_name) :
     #If user provides a model that has already been trained, load it
-        load_model(target_dir + model_name)
+        load_model(model_name)
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
 
         model.fit_generator( generator(f, batch_size ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
-        model.save(target_dir + model_name)
+        model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
     #scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
@@ -232,17 +233,22 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
 
 
     ### 9) Produce prediction    
-    start=0
+    '''start=0
     end=nUnique
     X = f['image'][start:end,]
-    X_predict=model.predict(X, batch_size=nUnique )
+    X_predict=model.predict(X, batch_size=1 )
     out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
     X_predict=X_predict.reshape(image_dim)
     if exists(out_fn) : os.remove(out_fn)
-    outfile = volumeLikeFile(label_fn, out_fn)
-    outfile.data = X_predict
-    outfile.writeFile()
-    outfile.closeVolume()
+
+    #copy(label_fn, out_fn)
+    predict_f = h5py.File(out_fn, 'w')
+    print( X_predict.shape )
+    dset = predict_f.create_dataset('minc-2.0/image/0/image',shape=X_predict.shape, dtype='f')
+    dset[...] = X_predict
+    #   predict_f['minc-2.0/']['image']['0']['image'][:] = X_predict[:]
+    predict_f.close()
+    '''
 
 
     return 0
