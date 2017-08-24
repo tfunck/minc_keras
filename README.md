@@ -29,7 +29,7 @@ Data is already formatted and ready to go. Basic python program with Keras for i
 4) Determine if training on MRI as well as PET helps improve performance
 
 
-##Installation
+## Installation
 ### Requirements:
 1) Python 3
 2) pandas
