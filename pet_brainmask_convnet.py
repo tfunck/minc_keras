@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 import h5py
-from pyminc.volumes.factory import *
+#from pyminc.volumes.factory import *
 import os
 from re import sub
 from keras.models import Sequential, load_model
@@ -92,9 +92,11 @@ def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, fe
         #for each image in this chunk...
         for i in range(nImages): 
             #identify and load the corresponding pet and label images
-            row=images.iloc[i, ] 
-            pet=volumeFromFile(row.pet).data
-            label=volumeFromFile(row.label).data
+            row=images.iloc[i, ]
+            minc_pet_f = h5py.File(row.pet, 'r')
+            minc_label_f = h5py.File(row.label, 'r')
+            pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
+            label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.label).data
             if normalize: pet = (pet - pet.min())/(pet.max() - pet.min())
             if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
             pet=pet.reshape(list(pet.shape)+[1])
@@ -168,7 +170,10 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     images = set_images(source_dir)
     ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
-    image_dim =  volumeFromFile(label_fn).sizes[0:3] #load label file and get its dimensions
+    minc_label_f = h5py.File(label_fn)
+    label_img = np.array(minc_label_f['minc-2.0/']['image']['0']['image'])
+    image_dim = list(label_img.shape) #load label file and get its dimensions
+    print(image_dim)
     nImages = images.shape[0] #the number of images is the number of rows in the images dataframe
 
     ### 3) Set up dimensions of data tensors to be used for training and testing. all of the
@@ -210,9 +215,13 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
         if(np.array(X).shape[0] == 31): exit(0)
         if(np.array(Y).shape[0] == 31): exit(0)
     '''
-    if exists(model_name) != None and not clobber : 
+    if model_name != None and not clobber :
     #If user provides a model that has already been trained, load it
-        load_model(target_dir + model_name)
+        if not exists(target_dir + model_name):
+            load_model(target_dir + model_name)
+        else:
+            print("Error: could not read ",target_dir + model_name )
+            exit(1)
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
