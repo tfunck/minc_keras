@@ -29,4 +29,19 @@ Data is already formatted and ready to go. Basic python program with Keras for i
 4) Determine if training on MRI as well as PET helps improve performance
 
 
+##Installation
+### Requirements:
+1) Python 3
+2) pandas
+3) numpy 
+4) scipy
+5) h5py
+6) pyminc
+7) keras
+
+To make sure that everything is installed, try running:
+__pip3 install pandas numpy scipy h5py pyminc keras__
+
+
+
 
