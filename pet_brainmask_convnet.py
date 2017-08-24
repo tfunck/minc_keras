@@ -55,10 +55,7 @@ def generator(f, batch_size, tensor_max):
         yield [X,Y]
        
 
-
-
-
-def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=3, use_patch=False, parameters=None, normalize=True, clobber=False):
+def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, feature_dim=3, use_patch=False, parameters=None, normalize=True, clobber=False):
     '''Extracts the features from the PET images according to option set in feature type.
     Feature type options: 
         1) Full image (no features extracted): return 3d array
@@ -74,16 +71,8 @@ def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feat
     '''
 
     nImages=images.shape[0]
+    temp_dir = target_dir + os.sep + 'chunk'
     if not exists(temp_dir): os.makedirs(temp_dir)
-    
-    #image_dim = list(volumeFromFile(images.iloc[0,].pet).data.shape)
-    #if len(image_dim) == 4: image_dim = image_dim[1:4]
-    #the dimensions of the tensor we want to save as a batch depends
-    #on the dimensions of the features (full volume, 2d slice, 1d profile)
-    #full volume = [number of images, z dim, y dim, x dim]
-    #2d slice  = [number of images * z dim, y dim, x dim]
-    #1d profile = [number of images * z dim * y dim, x dim]
-    #note: batch_size = number of images in the batch
 
 
     tensor_samples = int(tensor_dim[0])
@@ -95,10 +84,7 @@ def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feat
     maxshape = [None,] + slice_dim[1:] 
 
 
-    print('tensor dim', tensor_dim)
-    print('slice dim', slice_dim)
     if not exists(out_fn) or clobber==True :
-
         f=h5py.File(out_fn, "w")
         X_set = f.create_dataset("image", shape=slice_dim , maxshape=tensor_dim, dtype='f')
         Y_set = f.create_dataset("label", shape=slice_dim , maxshape=tensor_dim, dtype='f')
@@ -141,7 +127,7 @@ def feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feat
             del X
             del Y
 
-
+    f.close()
     return out_fn 
 
 
@@ -178,49 +164,50 @@ from fractions import gcd
 def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_patch=False, batch_size=2, nb_epoch=10,shuffle_training=True, clobber=False ):
     #1) Organize inputs into a data frame, match each PET image with label image
     images = set_images(source_dir)
+    #2) 
+    label_fn=images.iloc[0].label #get the filename for first label file
+    image_dim =  volumeFromFile(label_fn).sizes[0:3] #load label file and get its dimensions
+    nImages = images.shape[0] #the number of images is the number of rows in the images dataframe
+
     #2) Set up dimensions of tensors to be used for training and testing
-    label_fn=images.iloc[0].label
-    image_dim =  volumeFromFile(label_fn).sizes[0:3] 
-    nImages = images.shape[0]
     if feature_dim ==3 : tensor_dim = [nImages]+image_dim
     elif feature_dim ==2 : tensor_dim = [nImages*image_dim[0]]+image_dim[1:3]
     elif feature_dim ==1 : tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
     nbatches = ceil(tensor_dim[0] / batch_size)
-    print(batch_size, nbatches, tensor_dim[0])
-    print(tensor_dim[0] / batch_size)
-    #if nbatches % batch_size != 0 : batch_size = gcd(nbatches, batch_size)
-    #print( tensor_dim[0] / batch_size, batch_size)
-
+    nUnique = tensor_dim[0] / nImages
     input_shape= [batch_size] +  tensor_dim[1:] + [1]
-    #3) Define the inputs and outputs to system archetecture
-    print('Feature dim', feature_dim)
-    print ('Input Node shape:', input_shape)
+
+    #3) Define architecture of neural network
     model = define_arch(input_shape, feature_dim)
 
-
-    nUnique = tensor_dim[0] / nImages
-
+    #4) Determine number of batches for training, testing, validating
     nfolds=np.random.multinomial(nbatches,ratios)
     total_folds = sum(nfolds)
-    temp_dir = target_dir + os.sep + 'chunk'
-    out_fn = feature_extraction(images, temp_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
+
+    #5) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
+    out_fn = feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
+    
+    #Open the hdf5 for reading
     f = h5py.File(out_fn, 'r')
 
+    #6) Train network on data
+    #FIXME : keep getting <Error: StopIteration>, probably because the batch_size does not divide the first dimension of the tensor with all of the data (i.e., tensor_dim[0] % batch_size != 0)
     model.fit_generator( generator(f, batch_size, tensor_dim[0] ), steps_per_epoch=nbatches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
-    #for e in range(nb_epoch):
-        #for X_test, Y_test =generator(f, nfolds[1]*batch_size, np.array((fold + nfolds[0]) * batch_size))
-        #X_test, Y_test =generator(f, nfolds[1]*batch_size, np.array((fold + nfolds[0]) * batch_size))
-        #scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
-        #print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
-        
-        #X_predict=model.predict(X_test, batch_size=tensor_dim[0] )
-        #out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
-        #X_predict=X_predict.reshape(image_dim)
-        #if exists(out_fn) : os.remove(out_fn)
-        #outfile = volumeLikeFile(label_fn, out_fn)
-        #outfile.data = X_predict
-        #outfile.writeFile()
-        #outfile.closeVolume()
+    
+    #7) Evaluate network #FIXME : does not work at the moment 
+    #scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
+    #print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
+
+
+    #8) Produce prediction #FIXME : does not work at the moment    
+    #X_predict=model.predict(X_test, batch_size=tensor_dim[0] )
+    #out_fn=target_dir + os.sep + sub('.mnc', '_predict.mnc', os.path.basename(label_fn))
+    #X_predict=X_predict.reshape(image_dim)
+    #if exists(out_fn) : os.remove(out_fn)
+    #outfile = volumeLikeFile(label_fn, out_fn)
+    #outfile.data = X_predict
+    #outfile.writeFile()
+    #outfile.closeVolume()
 
 
     return 0
