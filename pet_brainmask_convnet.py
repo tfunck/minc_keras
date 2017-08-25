@@ -43,6 +43,7 @@ def set_images(source_dir,ratios):
         out = pd.concat([out, subject_df ])
 
     nfolds=np.random.multinomial(nSubjects,ratios) #number of test/train subjects
+    print('multinomial', nfolds, ratios)
     image_set = ['train'] * nfolds[0] + ['test'] * nfolds[1]
     out["category"] = "unknown"
     #out.reset_index(inplace=True)
@@ -83,8 +84,10 @@ def feature_extraction(images, nTrain, nTest, target_dir, batch_size, tensor_dim
     dim_range = int(tensor_dim[0] / nImages )
     train_dim = [ nTrain  ]  +  tensor_dim[1:] + [1] 
     test_dim = [ nTest ]  +  tensor_dim[1:] + [1] 
-    train_fn=temp_dir+os.sep+"train_batch-size-"+str(batch_size) +'_type-' + str(feature_dim)+ ".hdf5"
-    test_fn=temp_dir+os.sep+"test_batch-size-"+str(batch_size) +'_type-' + str(feature_dim) + ".hdf5"
+    print('Train Dim', train_dim)
+    print('Test Dim', test_dim)
+    train_fn=temp_dir+os.sep+"train_type-" + str(feature_dim)+ ".hdf5"
+    test_fn=temp_dir+os.sep+"test_type-" + str(feature_dim) + ".hdf5"
     if not exists(train_fn) and not exists(test_fn) or clobber==True :
         train_f=h5py.File(train_fn, "w")
         test_f=h5py.File(test_fn, "w") 
@@ -95,38 +98,52 @@ def feature_extraction(images, nTrain, nTest, target_dir, batch_size, tensor_dim
         X_test_set = test_f.create_dataset("image", test_dim, dtype='float16')
         Y_test_set = test_f.create_dataset("label", test_dim, dtype='float16')
         #for each image in this chunk...
+        i_train=i_test=im=0
         for i in range(nImages): 
             #identify and load the corresponding pet and label images
             row=images.iloc[i, ]
             minc_pet_f = h5py.File(row.pet, 'r')
             minc_label_f = h5py.File(row.label, 'r')
             pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
-            
-            #sum the pet image if it is a 4d volume
             if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
+            #sum the pet image if it is a 4d volume
             label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.label).data
-            #if normalize: pet = (pet - pet.min())/(pet.max() - pet.min())
+            pet = (pet - pet.min())/(pet.max() - pet.min())
+            label = (label - label.min())/(label.max() - label.min())
             pet=pet.reshape(list(pet.shape)+[1])
             label=label.reshape(list(label.shape)+[1])
 
-            if images.iloc[i].category == 'train': f= train_f
-            elif images.iloc[i].category == 'test': f=test_f
-            
+            if images.iloc[i].category == 'train': 
+                f=train_f
+                im=i_train
+                im2=i_train *  dim_range
+                i_train += 1
+            elif images.iloc[i].category == 'test': 
+                f=test_f
+                im=i_test
+                im2=i_test *  dim_range
+                i_test += 1
+                print('Test')
+            print('subject', i, im) 
             for j in range(dim_range):
-                if feature_dim ==3 : 
-                    f['image'][j,...]=pet
-                    f['label'][j,...]=label
+                if feature_dim ==3 :
+                    index=im + j
+                    f['image'][im,...]=pet
+                    f['label'][im,...]=label
                 elif feature_dim ==2 :
-                    f['image'][j,...] =pet[j,:,:]
-                    f['label'][j,...]=label[j,:,:]
+                    index=im2 + j
+                    f['image'][index,...] =pet[j,:,:]
+                    f['label'][index,...]=label[j,:,:]
                 elif feature_dim== 1 :
+                    index=im2 + j
                     z=int(j / (image_dim[1]))
                     y=j-z*image_dim[1] 
-                    f['image'][j,...]=pet[z,y,:,:]
-                    f['label'][j,...]=label[z,y,:,:]
+                    f['image'][index,...]=pet[z,y,:,:]
+                    f['label'][index,...]=label[z,y,:,:]
             
         train_f.close()
         test_f.close()
+
     return [train_fn , test_fn]
 
 
@@ -145,9 +162,9 @@ def define_arch(shape,feature_dim=3):
         model.add(Dense(1, activation="tanh"))
     elif feature_dim == 2 : 
         model.add(ZeroPadding2D(padding=(1, 1),batch_input_shape=shape,data_format="channels_last" ))
-        model.add(Conv2D( 4 , [3,3],  activation='relu'))
-        model.add(Dense(4))
-        model.add(Dense(1))
+        model.add(Conv2D( 16 , [3,3],  activation='relu'))
+        model.add(Dense(16))
+        model.add(Dense(1, activation="sigmoid"))
 
     else  :
         model.add(ZeroPadding3D(padding=(1, 1, 1),batch_input_shape=shape,data_format="channels_last" ))
@@ -199,9 +216,12 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     input_shape= [batch_size] +  tensor_dim[1:] + [1] #input shape for base layer of network
     ### 4) Define architecture of neural network
     model = define_arch(input_shape, feature_dim)
-   
+    print('nTrain', nTrain)
+    print('nTest', nTest)
     n_train_batches = int(nTrain / batch_size)
     n_test_batches = int(nTest / batch_size)
+    print('N Train Batches:', n_train_batches)
+    print('N Test Batches:', n_test_batches)
     ### 6) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
     train_fn, test_fn = feature_extraction(images, nTrain, nTest, target_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
     #Open the hdf5 for reading
@@ -217,7 +237,8 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
-        model.fit_generator( generator(train_f, batch_size), steps_per_epoch=n_train_batches, epochs=nb_epoch, validation_data=generator(test_f, batch_size ), validation_steps=n_test_batches , max_queue_size=10, workers=1, use_multiprocessing=True )
+        model.fit_generator( generator(train_f, batch_size), steps_per_epoch=n_train_batches, epochs=nb_epoch,  max_queue_size=10, workers=1, use_multiprocessing=True )
+        #model.fit_generator( generator(train_f, batch_size), steps_per_epoch=n_train_batches, epochs=nb_epoch, validation_data=generator(test_f, batch_size ), validation_steps=n_test_batches , max_queue_size=10, workers=1, use_multiprocessing=True )
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
