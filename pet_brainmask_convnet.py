@@ -18,6 +18,7 @@ from math import ceil
 from random import shuffle
 from shutil import copy
 import argparse
+from make_and_run_model import *
 
 # fix random seed for reproducibility
 np.random.seed(8)
@@ -171,7 +172,6 @@ def prepare_data(source_dir, target_dir, ratios, feature_dim=2, clobber=False):
     elif feature_dim ==1 : tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
     samples_per_subject =int( tensor_dim[0] / nImages)
 
-    ## 4) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a numpy file
     train_n = images[images['category']=='train'].reset_index()
     test_n = images[images['category']=='test'].reset_index()
     prepare_data.train_x_fn = target_dir + os.sep + 'train_x'
@@ -186,9 +186,8 @@ def prepare_data(source_dir, target_dir, ratios, feature_dim=2, clobber=False):
 def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_size=2, nb_epoch=10, clobber=False, model_name=False ):
     tensor_dim = prepare_data(source_dir, target_dir, ratios, feature_dim, clobber)
 
-    input_shape= [batch_size] +  tensor_dim[1:] + [1] #input shape for base layer of network
     ### 1) Define architecture of neural network
-    model = define_arch(input_shape, feature_dim)
+    model = make_model(batch_size)
 
     ### 2) Train network on data
     if model_name == None:  model_name =target_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5' 
@@ -202,7 +201,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_s
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
         X_test=np.load(prepare_data.test_x_fn+'.npy')
         Y_test=np.load(prepare_data.test_y_fn+'.npy')
-        model.fit(X_train,Y_train,  epochs=nb_epoch , batch_size=batch_size, validation_data=(X_test, Y_test)  )
+        model = compile_and_run(model, X_train, Y_train, X_test, Y_test, batch_size)
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
