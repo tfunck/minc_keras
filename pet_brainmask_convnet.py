@@ -152,8 +152,8 @@ def adjust_batch_size(n1, n2, batch_size):
                 return b
     else: return batch_size
 
-def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_patch=False, batch_size=2, nb_epoch=10,shuffle_training=True, clobber=False, model_name=False ):
-
+# Go to the source directory and grab the relevant data. Convert it to numpy arrays named test- and train-
+def prepare_data(source_dir, target_dir, ratios, feature_dim=2, clobber=False):
     ### 1) Organize inputs into a data frame, match each PET image with label image
     images = set_images(source_dir, ratios)
 
@@ -170,35 +170,38 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
     elif feature_dim ==2 : tensor_dim = [nImages*image_dim[0]]+image_dim[1:3]
     elif feature_dim ==1 : tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
     samples_per_subject =int( tensor_dim[0] / nImages)
-    input_shape= [batch_size] +  tensor_dim[1:] + [1] #input shape for base layer of network
-    
-    ### 4) Define architecture of neural network
-    model = define_arch(input_shape, feature_dim)
-    
-    ## 6) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
-    
+
+    ## 4) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a numpy file
     train_n = images[images['category']=='train'].reset_index()
     test_n = images[images['category']=='test'].reset_index()
-    train_x_fn = target_dir + os.sep + 'train_x'
-    train_y_fn = target_dir + os.sep + 'train_y'
-    test_x_fn = target_dir + os.sep + 'test_x'
-    test_y_fn = target_dir + os.sep + 'test_y'
-    feature_extraction(train_n, samples_per_subject, train_x_fn, train_y_fn,target_dir, clobber )
-    feature_extraction(test_n, samples_per_subject, test_x_fn, test_y_fn, target_dir, clobber)
+    prepare_data.train_x_fn = target_dir + os.sep + 'train_x'
+    prepare_data.train_y_fn = target_dir + os.sep + 'train_y'
+    prepare_data.test_x_fn = target_dir + os.sep + 'test_x'
+    prepare_data.test_y_fn = target_dir + os.sep + 'test_y'
+    feature_extraction(train_n, samples_per_subject, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
+    feature_extraction(test_n, samples_per_subject, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
+    return tensor_dim
 
-    ### 7) Train network on data
 
+def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_size=2, nb_epoch=10, clobber=False, model_name=False ):
+    tensor_dim = prepare_data(source_dir, target_dir, ratios, feature_dim, clobber)
+
+    input_shape= [batch_size] +  tensor_dim[1:] + [1] #input shape for base layer of network
+    ### 1) Define architecture of neural network
+    model = define_arch(input_shape, feature_dim)
+
+    ### 2) Train network on data
     if model_name == None:  model_name =target_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5' 
-    if exists(model_name) :
+    if exists(model_name) and not clobber:
     #If user provides a model that has already been trained, load it
         load_model(model_name)
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
-        X_train=np.load(train_x_fn+'.npy')
-        Y_train=np.load(train_y_fn+'.npy')
-        X_test=np.load(test_x_fn+'.npy')
-        Y_test=np.load(test_y_fn+'.npy')
+        X_train=np.load(prepare_data.train_x_fn+'.npy')
+        Y_train=np.load(prepare_data.train_y_fn+'.npy')
+        X_test=np.load(prepare_data.test_x_fn+'.npy')
+        Y_test=np.load(prepare_data.test_y_fn+'.npy')
         model.fit(X_train,Y_train,  epochs=nb_epoch , batch_size=batch_size, validation_data=(X_test, Y_test)  )
         model.save(model_name)
 
@@ -228,11 +231,14 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
 
     return 0
 
-def predict(model_name, ):
+def predict(model_name, predict_directory, target_dir):
     model = None
     if exists(model_name) :
         model = load_model(model_name)
         print("Model successfully loaded", model)
+
+    prepare_data(predict_directory, target_dir, ratios = [0.0, 1.0], feature_dim = 2, clobber = False)
+    print("Data prepared")
    
 
 if __name__ == '__main__':
@@ -249,6 +255,6 @@ if __name__ == '__main__':
     parser.add_argument('--predict', dest='predict', type=str, help='directory with data for prediction', default=None)
     args = parser.parse_args()
     if args.predict:
-        predict(args.model_name)
+        predict(args.model_name, args.predict, args.target_dir)
     else:
         pet_brainmask_convnet(args.source_dir, args.target_dir, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name)
