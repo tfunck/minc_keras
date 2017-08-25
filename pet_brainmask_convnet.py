@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 import h5py
-from pyminc.volumes.factory import *
+#from pyminc.volumes.factory import *
 import os
 from re import sub
 from keras.models import Sequential, load_model
