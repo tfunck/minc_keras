@@ -18,6 +18,7 @@ from math import ceil
 from random import shuffle
 from shutil import copy
 import argparse
+from make_and_run_model import *
 
 # fix random seed for reproducibility
 np.random.seed(8)
@@ -173,7 +174,8 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
     input_shape= [batch_size] +  tensor_dim[1:] + [1] #input shape for base layer of network
     
     ### 4) Define architecture of neural network
-    model = define_arch(input_shape, feature_dim)
+    #model = define_arch(input_shape, feature_dim)
+    model = make_model(batch_size)
     
     ## 6) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
     
@@ -199,7 +201,8 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
         Y_train=np.load(train_y_fn+'.npy')
         X_test=np.load(test_x_fn+'.npy')
         Y_test=np.load(test_y_fn+'.npy')
-        model.fit(X_train,Y_train,  epochs=nb_epoch , batch_size=batch_size, validation_data=(X_test, Y_test)  )
+        #model.fit(X_train,Y_train,  epochs=nb_epoch , batch_size=batch_size, validation_data=(X_test, Y_test)  )
+        model = compile_and_run(model, X_train, Y_train, X_test, Y_test, batch_size)
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
