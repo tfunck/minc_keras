@@ -22,41 +22,6 @@ from make_and_run_model import *
 
 # fix random seed for reproducibility
 np.random.seed(8)
-
-def set_images(source_dir,ratios):
-    '''Creates a DataFrame that contains a list of all the subjects along with their PET images, T1 MRI images and labeled images.'''
-
-    subject_dirs = glob(source_dir+os.sep+'*')
-    pet_list = glob( source_dir + os.sep + '*' + os.sep + '*_pet.*'  )
-    t1_list = glob( source_dir + os.sep + '*' + os.sep + '*_t1.*'  )
-    label_list = glob( source_dir + os.sep + '*' + os.sep + '*_labels_brainmask.*'  )
-    names = [ basename(f) for f in  subject_dirs ]
-    colnames=["subject", "radiotracer", "pet", "t1", "label"]
-    nSubjects=len(names)
-    out=pd.DataFrame(columns=colnames)
-    for name in names:
-        label = [ f for f in label_list if name in f][0] 
-        pet =  [ f for f in pet_list if name in f ]
-        t1 =  [ f for f in t1_list if name in f ][0]
-        pet_names = [ sub('acq-','', g) for f in pet for g in f.split('_') if 'acq' in g ]
-        n=len(pet)
-        subject_df = pd.DataFrame(np.array([[name] * n,  pet_names,pet,[t1]*n, [label] * n]).T, columns=colnames)
-        out = pd.concat([out, subject_df ])
-
-    nfolds=np.random.multinomial(nSubjects,ratios) #number of test/train subjects
-    print('multinomial', nfolds, ratios)
-    image_set = ['train'] * nfolds[0] + ['test'] * nfolds[1]
-    out["category"] = "unknown"
-    out.reset_index(inplace=True)
-    l = out.groupby(["subject"]).category.count().values
-    # please change later
-    el = []
-    for i in range(nSubjects):
-       el.append([image_set[i]]*l[i])
-    el = [l for sublist in el for l in sublist]
-    out.category = el
-    return out
-
 def generator(f, batch_size):
     i=0
     start=i*batch_size
@@ -114,6 +79,7 @@ def feature_extraction(images, samples_per_subject, x_output_file, y_output_file
         np.save(y_output_file,clean_Y)
 
         f.close()
+        return( len([not_index_bad_X])  )
 
 def define_arch(shape,feature_dim=2):
     '''Define architecture of neural net'''
@@ -139,7 +105,6 @@ def define_arch(shape,feature_dim=2):
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     return model
-from fractions import gcd
 
 def adjust_batch_size(n1, n2, batch_size):
     #This little bit of code changes the batch_size so that it divides the first dimension
@@ -178,9 +143,11 @@ def prepare_data(source_dir, target_dir, ratios, feature_dim=2, clobber=False):
     prepare_data.train_y_fn = target_dir + os.sep + 'train_y'
     prepare_data.test_x_fn = target_dir + os.sep + 'test_x'
     prepare_data.test_y_fn = target_dir + os.sep + 'test_y'
-    feature_extraction(train_n, samples_per_subject, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
-    feature_extraction(test_n, samples_per_subject, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
-    return tensor_dim
+    nTrain = feature_extraction(train_n, samples_per_subject, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
+    nTest = feature_extraction(test_n, samples_per_subject, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
+
+    prepare_data.batch_size = adjust_batch_size(nTrain, nTest, batch_size)
+    return 
 
 
 def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_size=2, nb_epoch=10, clobber=False, model_name=False ):
@@ -201,7 +168,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_s
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
         X_test=np.load(prepare_data.test_x_fn+'.npy')
         Y_test=np.load(prepare_data.test_y_fn+'.npy')
-        model = compile_and_run(model, X_train, Y_train, X_test, Y_test, batch_size)
+        model = compile_and_run(model, X_train, Y_train, X_test, Y_test, prepare_data.batch_size)
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
