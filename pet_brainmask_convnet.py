@@ -239,6 +239,9 @@ def predict(model_name, predict_directory, target_dir):
 
     prepare_data(predict_directory, target_dir, ratios = [0.0, 1.0], feature_dim = 2, clobber = False)
     print("Data prepared")
+    X_test = np.load(prepare_data.test_x_fn + '.npy')
+    X_predict = model.predict(X_test, batch_size = 1)
+    print("Prediction completed")
    
 
 if __name__ == '__main__':
