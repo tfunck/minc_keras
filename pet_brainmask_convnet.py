@@ -81,8 +81,8 @@ def feature_extraction(images, nTrain, nTest, target_dir, batch_size, tensor_dim
     if not exists(temp_dir): os.makedirs(temp_dir)
 
     dim_range = int(tensor_dim[0] / nImages )
-    train_dim = [ int((tensor_dim[0]/nImages)*nTrain)  ]  +  tensor_dim[1:] + [1] 
-    test_dim = [ int((tensor_dim[0]/nImages)*nTest)  ]  +  tensor_dim[1:] + [1] 
+    train_dim = [ nTrain  ]  +  tensor_dim[1:] + [1] 
+    test_dim = [ nTest ]  +  tensor_dim[1:] + [1] 
     train_fn=temp_dir+os.sep+"train_batch-size-"+str(batch_size) +'_type-' + str(feature_dim)+ ".hdf5"
     test_fn=temp_dir+os.sep+"test_batch-size-"+str(batch_size) +'_type-' + str(feature_dim) + ".hdf5"
     if not exists(train_fn) and not exists(test_fn) or clobber==True :
