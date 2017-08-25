@@ -229,9 +229,10 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
     return 0
 
 def predict(model_name, ):
+    model = None
     if exists(model_name) :
-        load_model(model_name)
-        print("Model successfully loaded")
+        model = load_model(model_name)
+        print("Model successfully loaded", model)
    
 
 if __name__ == '__main__':
