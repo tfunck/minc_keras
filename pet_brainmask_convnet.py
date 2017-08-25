@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 import h5py
-#from pyminc.volumes.factory import *
+from pyminc.volumes.factory import *
 import os
 from re import sub
 from keras.models import Sequential, load_model
@@ -22,16 +22,16 @@ import argparse
 # fix random seed for reproducibility
 np.random.seed(8)
 
-def set_images(source_dir):
+def set_images(source_dir,ratios):
     '''Creates a DataFrame that contains a list of all the subjects along with their PET images, T1 MRI images and labeled images.'''
 
     subject_dirs = glob(source_dir+os.sep+'*')
     pet_list = glob( source_dir + os.sep + '*' + os.sep + '*_pet.*'  )
     t1_list = glob( source_dir + os.sep + '*' + os.sep + '*_t1.*'  )
     label_list = glob( source_dir + os.sep + '*' + os.sep + '*_labels_brainmask.*'  )
-
     names = [ basename(f) for f in  subject_dirs ]
     colnames=["subject", "radiotracer", "pet", "t1", "label"]
+    nSubjects=len(names)
     out=pd.DataFrame(columns=colnames)
     for name in names:
         label = [ f for f in label_list if name in f][0] 
@@ -41,9 +41,21 @@ def set_images(source_dir):
         n=len(pet)
         subject_df = pd.DataFrame(np.array([[name] * n,  pet_names,pet,[t1]*n, [label] * n]).T, columns=colnames)
         out = pd.concat([out, subject_df ])
+
+    nfolds=np.random.multinomial(nSubjects,ratios) #number of test/train subjects
+    image_set = ['train'] * nfolds[0] + ['test'] * nfolds[1]
+    out["category"] = "unknown"
+    #out.reset_index(inplace=True)
+    l = out.groupby(["subject"]).category.count().values
+    # please change later
+    el = []
+    for i in range(nSubjects):
+       el.append([image_set[i]]*l[i])
+    el = [l for sublist in el for l in sublist]
+    out.category = el
     return out
 
-def generator(f, batch_size, data_type):
+def generator(f, batch_size):
     i=0
     start=i*batch_size
     end=start + batch_size
@@ -51,51 +63,37 @@ def generator(f, batch_size, data_type):
     while True:
         start=i*batch_size
         end=start + batch_size #(i+1)*batch_size 
-        X = f['image'+data_type][start:end,]
-        Y = f['label'+data_type][start:end,]
+        X = f['image'][start:end,]
+        Y = f['label'][start:end,]
         i+=1
         yield [X,Y]
        
 
-def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim,nfolds, feature_dim=3 , use_patch=False, parameters=None, normalize=True, clobber=False):
+def feature_extraction(images, nTrain, nTest, target_dir, batch_size, tensor_dim, image_dim, feature_dim=3 , use_patch=False, parameters=None, normalize=True, clobber=False):
     '''Extracts the features from the PET images according to option set in feature type.
     Feature type options: 
-        1) Full image (no features extracted): return 3d array
-            Parameters = None
+        1) Full image (no features extracted): return 3d array. Parameters = None
         2) Slice: return list of 2d image slices 
-            Parameters = integer, axis (0,1,2) along which to extract slices (default=0=z=axial)
         3) Lines: return list of 1d profiles 
-            Parameters = None
-        4) 2D Kernel: return list of 2d patches from full image
-            Parameters = integer, size of kernel 
-        5) 3D Kernel: return list of 3d patches from full image
-            Parameters = integer, size of kernel 
     '''
     nImages=images.shape[0]
     temp_dir = target_dir + os.sep + 'chunk'
     if not exists(temp_dir): os.makedirs(temp_dir)
 
-    n_train=nfolds[0]*3    
-    n_test=nfolds[1]*3    
-
-    #test_tensor_dim=[tensor_dim[0] / n_test] + tensor_dim[1:3]
-    #train_tensor_dim=[tensor_dim[0] / n_train] + tensor_dim[1:3]
-    
-    tensor_samples = int(tensor_dim[0])
-    dim_range = int(tensor_samples / nImages )
-    tensor_dim = tensor_dim + [1] 
-    slice_dim = [dim_range] + tensor_dim[1:]  
-    out_fn = temp_dir +os.sep + "image_label_batch-size-"+str(batch_size) +'_type-' + str(feature_dim) + ".hdf5"
-
-    maxshape = [None,] + slice_dim[1:] 
-
-
-    if not exists(out_fn) or clobber==True :
-        f=h5py.File(out_fn, "w")
-        X_train_set = f.create_dataset("image/train", shape=slice_dim , maxshape=tensor_dim, dtype='f')
-        X_test_set = f.create_dataset("image/test", shape=slice_dim , maxshape=tensor_dim, dtype='f')
-        Y_train_set = f.create_dataset("label/train", shape=slice_dim , maxshape=tensor_dim, dtype='f')
-        Y_test_set = f.create_dataset("label/test", shape=slice_dim , maxshape=tensor_dim, dtype='f')
+    dim_range = int(tensor_dim[0] / nImages )
+    train_dim = [ int((tensor_dim[0]/nImages)*nTrain)  ]  +  tensor_dim[1:] + [1] 
+    test_dim = [ int((tensor_dim[0]/nImages)*nTest)  ]  +  tensor_dim[1:] + [1] 
+    train_fn=temp_dir+os.sep+"train_batch-size-"+str(batch_size) +'_type-' + str(feature_dim)+ ".hdf5"
+    test_fn=temp_dir+os.sep+"test_batch-size-"+str(batch_size) +'_type-' + str(feature_dim) + ".hdf5"
+    if not exists(train_fn) and not exists(test_fn) or clobber==True :
+        train_f=h5py.File(train_fn, "w")
+        test_f=h5py.File(test_fn, "w") 
+        
+        X_train_set = train_f.create_dataset('image', train_dim, dtype='float16')
+        Y_train_set = train_f.create_dataset("label", train_dim, dtype='float16')
+        
+        X_test_set = test_f.create_dataset("image", test_dim, dtype='float16')
+        Y_test_set = test_f.create_dataset("label", test_dim, dtype='float16')
         #for each image in this chunk...
         for i in range(nImages): 
             #identify and load the corresponding pet and label images
@@ -103,48 +101,33 @@ def feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim,nfo
             minc_pet_f = h5py.File(row.pet, 'r')
             minc_label_f = h5py.File(row.label, 'r')
             pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
-            label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.label).data
-            if normalize: pet = (pet - pet.min())/(pet.max() - pet.min())
+            
+            #sum the pet image if it is a 4d volume
             if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
+            label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.label).data
+            #if normalize: pet = (pet - pet.min())/(pet.max() - pet.min())
             pet=pet.reshape(list(pet.shape)+[1])
             label=label.reshape(list(label.shape)+[1])
 
-            #allocate the tensors in which we will store the chunk data
-            try : X
-            except NameError :X= np.zeros(slice_dim) 
-
-            try : Y
-            except NameError : Y= np.zeros(slice_dim) 
+            if images.iloc[i].category == 'train': f= train_f
+            elif images.iloc[i].category == 'test': f=test_f
             
-            #sum the pet image if it is a 4d volume
             for j in range(dim_range):
                 if feature_dim ==3 : 
-                    X[j]=pet
-                    Y[j]=label
+                    f['image'][j,...]=pet
+                    f['label'][j,...]=label
                 elif feature_dim ==2 :
-                    X[j]=pet[j,:,:]
-                    Y[j]=label[j,:,:]
-                elif feature_dim==1:
+                    f['image'][j,...] =pet[j,:,:]
+                    f['label'][j,...]=label[j,:,:]
+                elif feature_dim== 1 :
                     z=int(j / (image_dim[1]))
                     y=j-z*image_dim[1] 
-                    X[j]=pet[z,y,:,:]
-                    Y[j]=label[z,y,:,:]
-            row_count = i*slice_dim[0]
-            if images.iloc[i].category == 'train':
-                X_train_set[row_count:]=X
-                X_train_set.resize( (i+1)*slice_dim[0], axis=0)
-                Y_train_set[row_count:]=Y
-                Y_train_set.resize( (i+1)*slice_dim[0], axis=0)
-            if images.iloc[i].category == 'test':
-                X_test_set[row_count:]=X
-                X_test_set.resize( (i+1)*slice_dim[0], axis=0)
-                Y_test_set[row_count:]=Y
-                Y_test_set.resize( (i+1)*slice_dim[0], axis=0)
-            del X
-            del Y
-
-        f.close()
-    return out_fn 
+                    f['image'][j,...]=pet[z,y,:,:]
+                    f['label'][j,...]=label[z,y,:,:]
+            
+        train_f.close()
+        test_f.close()
+    return [train_fn , test_fn]
 
 
 
@@ -177,10 +160,22 @@ def define_arch(shape,feature_dim=3):
     return model
 from fractions import gcd
 
+def adjust_batch_size(n1, n2, batch_size):
+    #This little bit of code changes the batch_size so that it divides the first dimension
+    #of the data tensor without remainder. This way the data tensor can be divided into 
+    #equally sized batche
+    n = n1
+    if n > n2:n=n2
+    if n1 % batch_size != 0 and n2 % batch_size != 0:
+        for b in range(n, 0, -1):
+            if n1 % b == 0 and n2 % b == 0:
+                return b
+    else: return batch_size
+
 def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_patch=False, batch_size=2, nb_epoch=10,shuffle_training=True, clobber=False, model_name=False ):
-    
+
     ### 1) Organize inputs into a data frame, match each PET image with label image
-    images = set_images(source_dir)
+    images = set_images(source_dir, ratios)
     ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
     minc_label_f = h5py.File(label_fn, 'r')
@@ -195,51 +190,23 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     elif feature_dim ==1 : tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
     nUnique =int( tensor_dim[0] / nImages)
     
-    #This little bit of code changes the batch_size so that it divides the first dimension
-    #of the data tensor without remainder. This way the data tensor can be divided into 
-    #equally sized batche
-    if tensor_dim[0] % batch_size != 0:
-        for b in range(batch_size, 0, -1):
-            if tensor_dim[0] % b == 0 :
-                batch_size=b
-                break
-
-    input_shape= [batch_size] +  tensor_dim[1:] + [1]
-    nbatches = ceil(tensor_dim[0] / batch_size)
-    print('batch size: ', batch_size, tensor_dim[0] % batch_size)
+    nSubjects= len(np.unique(images.subject)) #total number of subjects
+    category_sizes = images.groupby(['category']).size()
+    nTrain = int(category_sizes.ix['train','category']) *nUnique #Number of training samples
+    nTest = int(category_sizes.ix['test','category']) *nUnique #Number of testing samples
+    #determine the number test batches
+    batch_size  = adjust_batch_size(nTrain,nTest, batch_size) #adjusted size of batch so that it divides nTrain and nTest without remainder
+    input_shape= [batch_size] +  tensor_dim[1:] + [1] #input shape for base layer of network
     ### 4) Define architecture of neural network
     model = define_arch(input_shape, feature_dim)
-
-    ### 5) Determine number of batches for training, testing, validating
-    nSubjects= len(np.unique(images.subject)) #total number of subjects
-    nfolds=np.random.multinomial(nSubjects,ratios) #number of test/train subjects
-    #create a train/test label for each subject
-    image_set = ['train'] * nfolds[0] + ['test'] * nfolds[1]
-    #shuffle so that we don't train/test on the same images every time
-    shuffle(image_set)
-    i=0
-    temp_df=pd.DataFrame([], columns=list(images.columns)+['category'])
-    #this for-loop is for assigning the test/train categorgy to the images data frame
-    for name, df in images.groupby(['subject']):
-        df.loc['category'] = image_set[i] 
-        temp_df = pd.concat([temp_df, df]) 
-        i+=1
-    images = temp_df
-    
-    total_folds = sum(nfolds)
-
-    #determine the number test batches
-    n_train_batches =  int(tensor_dim[0] * ratios[0])
-    #determine the number train batches
-    n_test_batches = int(tensor_dim[0] * ratios[1])
-    print('Number of Test Batches', n_test_batches)
-    print('Number of Train Batches', n_train_batches)
+   
+    n_train_batches = int(nTrain / batch_size)
+    n_test_batches = int(nTest / batch_size)
     ### 6) Take all of the subject data, extract the desired feature, store it in a tensor, and then save it to a common hdf5 file
-
-    out_fn = feature_extraction(images, target_dir, batch_size, tensor_dim, image_dim, nfolds, feature_dim=feature_dim,  clobber=clobber )
-    
+    train_fn, test_fn = feature_extraction(images, nTrain, nTest, target_dir, batch_size, tensor_dim, image_dim, feature_dim=feature_dim,  clobber=clobber )
     #Open the hdf5 for reading
-    f = h5py.File(out_fn, 'r')
+    train_f = h5py.File(train_fn, 'r')
+    test_f = h5py.File(test_fn, 'r')
 
     ### 7) Train network on data
 
@@ -250,7 +217,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=3, use_pat
     else :
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
-        model.fit_generator( generator(f, batch_size, '/train' ), steps_per_epoch=n_train_batches, epochs=nb_epoch, validation_data=generator(f, batch_size, '/test' ), validation_steps=n_test_batches , max_queue_size=10, workers=1, use_multiprocessing=True )
+        model.fit_generator( generator(train_f, batch_size), steps_per_epoch=n_train_batches, epochs=nb_epoch, validation_data=generator(test_f, batch_size ), validation_steps=n_test_batches , max_queue_size=10, workers=1, use_multiprocessing=True )
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
