@@ -203,7 +203,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
-    #scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
+    # scores = model.evaluate(X_test, Y_test,batch_size=tensor_dim[0] )
     #print("Scores: %s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
@@ -227,6 +227,11 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, use_pat
 
 
     return 0
+
+def predict(model_name, ):
+    if exists(model_name) :
+        load_model(model_name)
+        print("Model successfully loaded")
    
 
 if __name__ == '__main__':
@@ -235,10 +240,14 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1, help='size of batch')
     parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
     parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
-    parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='target directory')
+    parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
     #parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--clobber', dest='clobber',  action='store_true', default=False,  help='clobber')
     parser.add_argument('--load-model', dest='model_name', default=None,  help='clobber')
     parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.3],  help='List of ratios for training, testing, and validating (default = 0.7 0.2 0.1')
+    parser.add_argument('--predict', dest='predict', type=str, help='directory with data for prediction', default=None)
     args = parser.parse_args()
-    pet_brainmask_convnet(args.source_dir, args.target_dir, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name)
+    if args.predict:
+        predict(args.model_name)
+    else:
+        pet_brainmask_convnet(args.source_dir, args.target_dir, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name)
