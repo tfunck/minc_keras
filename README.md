@@ -1,10 +1,11 @@
 # Deep Pet -- Deep Brain Hackathon 2017
 
 ## To do:
-#### Figure out a reasonable architecture
-#### Generalize prediction to n subject (specific subjects?)
-#### Make clobber specific to specific processing steps (--clobber 0 : "clobber all", --clobber 1: "clobber feature extraction" --clobber 2: "clobber model", --clobber 3 : "clobber predict "
-#### Figure out scaling with hdf5
+##### Make clobber specific to specific processing steps (--clobber 0 : "clobber all", --clobber 1: "clobber feature extraction" --clobber 2: "clobber model", --clobber 3 : "clobber predict "
+##### Figure out scaling with hdf5
+##### Figure out why hdf5 doesn't read full frame properly
+
+
 
 ## Background
 PET is an imaging modality that uses a radioactive tracer attached to a biological metabolite to quantify the structure and function of the brain. Brain masks are important for PET image processing. They can, for example, in helping improve PET-MRI coregistration. However, it is dificult produce a "one size fits all" algorithm for deriving brain masks from PET images that will apply across a wide variety of different radiotracers. This is because the signal distribution varies greatly from one tracer to the next. Deep neural networks may have sufficient flexibility to allow for a generic brain extraction algorithm for PET.
