@@ -115,7 +115,6 @@ def process(name, source_dir, pet_list, t1_list):
 
 
     '''
-    print(t1_list)
     pet = [f for f in pet_list if name in f]
     t1 = [f for f in t1_list if name in f][0]
     pet_names = [sub('.mnc', '', sub('acq-', '', g))
@@ -155,7 +154,7 @@ def create_out(dfd):
             the index is reset.
 
     '''
-    out = pd.DataFrame(columns=dfd[dfd.keys()[0]].columns)
+    out = pd.DataFrame(columns=dfd[list(dfd.keys())[0]].columns)
     for k, v in dfd.items():
         out = pd.concat([out, v])
     out["category"] = "unknown"
