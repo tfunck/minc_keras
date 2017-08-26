@@ -6,7 +6,6 @@ from glob import glob
 import os
 from os.path import basename
 
-
 def gather_dirs(source_dir):
     ''' This function takes a source directory and parse it to extract the
         information and returns it as lists of strings.
