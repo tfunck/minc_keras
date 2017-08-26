@@ -4,6 +4,7 @@
 ##### Make clobber specific to specific processing steps (--clobber 0 : "clobber all", --clobber 1: "clobber feature extraction" --clobber 2: "clobber model", --clobber 3 : "clobber predict "
 ##### Figure out scaling with hdf5
 ##### Figure out why hdf5 doesn't read full frame properly
+##### Improve data augmentation script so that it can be easily run
 
 
 
