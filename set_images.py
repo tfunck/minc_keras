@@ -5,6 +5,7 @@ from sys import argv
 from glob import glob
 import os
 from os.path import basename
+from glob import glob
 def set_images(source_dir,ratios):
     '''Creates a DataFrame that contains a list of all the subjects along with their PET images, T1 MRI images and labeled images.'''
 
