@@ -19,7 +19,7 @@ from random import shuffle
 from shutil import copy
 import argparse
 from make_and_run_model import *
-
+from set_images import *
 # fix random seed for reproducibility
 np.random.seed(8)
 def generator(f, batch_size):
@@ -38,12 +38,12 @@ def generator(f, batch_size):
 def feature_extraction(images, samples_per_subject, x_output_file, y_output_file,target_dir, clobber):
     nSubjects= images.shape[0] #total number f subjects
     total_slices = nSubjects * samples_per_subject
-    print(total_slices)
     if not exists(x_output_file+'.npy') or not exists(y_output_file+'.npy') or clobber:
         f = h5py.File(target_dir+os.sep+'temp.hdf5', "w")
         X_f = f.create_dataset("image", [total_slices,217,181,1], dtype='float16')
         Y_f = f.create_dataset("label", [total_slices,217,181,1], dtype='float16')
         for index, row in images.iterrows():
+            if index % 100 == 0: print("Saving images:", row.category, '--', 100. * float(index)/total_slices,'%', end='\r') 
             minc_pet_f = h5py.File(row.pet, 'r')
             minc_label_f = h5py.File(row.label, 'r')
             pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
@@ -79,6 +79,7 @@ def feature_extraction(images, samples_per_subject, x_output_file, y_output_file
         np.save(y_output_file,clean_Y)
 
         f.close()
+        print('')
         return( len([not_index_bad_X])  )
 
 def define_arch(shape,feature_dim=2):
@@ -118,8 +119,19 @@ def adjust_batch_size(n1, n2, batch_size):
                 return b
     else: return batch_size
 
+def get_n_slices(train_fn, test_fn):
+    #open .npy files for train and test so that we can find how long they are
+    #not very elegant...
+    X_train = np.load(prepare_data.train_x_fn+'.npy')
+    X_test = np.load(prepare_data.test_x_fn+'.npy')
+    nTrain=X_train.shape[0] 
+    nTest =X_test.shape[0]
+    del X_train
+    del X_test
+    return([nTrain,nTest])
+
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named test- and train-
-def prepare_data(source_dir, target_dir, ratios, feature_dim=2, clobber=False):
+def prepare_data(source_dir, target_dir, ratios, batch_size, feature_dim=2, clobber=False):
     ### 1) Organize inputs into a data frame, match each PET image with label image
     images = set_images(source_dir, ratios)
 
@@ -143,15 +155,19 @@ def prepare_data(source_dir, target_dir, ratios, feature_dim=2, clobber=False):
     prepare_data.train_y_fn = target_dir + os.sep + 'train_y'
     prepare_data.test_x_fn = target_dir + os.sep + 'test_x'
     prepare_data.test_y_fn = target_dir + os.sep + 'test_y'
-    nTrain = feature_extraction(train_n, samples_per_subject, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
-    nTest = feature_extraction(test_n, samples_per_subject, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
+    feature_extraction(train_n, samples_per_subject, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
+    feature_extraction(test_n, samples_per_subject, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
 
-    prepare_data.batch_size = adjust_batch_size(nTrain, nTest, batch_size)
-    return 
+
+
+    nTrain, nTest = get_n_slices(prepare_data.train_x_fn, prepare_data.test_x_fn)
+
+    batch_size = adjust_batch_size(nTrain, nTest, batch_size)
+    return batch_size 
 
 
 def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_size=2, nb_epoch=10, clobber=False, model_name=False ):
-    tensor_dim = prepare_data(source_dir, target_dir, ratios, feature_dim, clobber)
+    batch_size = prepare_data(source_dir, target_dir, ratios, batch_size,feature_dim, clobber)
 
     ### 1) Define architecture of neural network
     model = make_model(batch_size)
@@ -168,7 +184,7 @@ def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_s
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
         X_test=np.load(prepare_data.test_x_fn+'.npy')
         Y_test=np.load(prepare_data.test_y_fn+'.npy')
-        model = compile_and_run(model, X_train, Y_train, X_test, Y_test, prepare_data.batch_size)
+        model = compile_and_run(model, X_train, Y_train, X_test, Y_test,batch_size, nb_epoch)
         model.save(model_name)
 
     ### 8) Evaluate network #FIXME : does not work at the moment 
