@@ -19,7 +19,7 @@ def feature_extraction(images, samples_per_subject, x_output_file, y_output_file
         X_f = f.create_dataset("image", [total_slices,217,181,1], dtype='float16')
         Y_f = f.create_dataset("label", [total_slices,217,181,1], dtype='float16')
         for index, row in images.iterrows():
-            if index % 100 == 0: print("Saving images:", row.category, '--', 100. * float(index)/total_slices,'%', end='\r') 
+            if index % 10 == 0: print("Saving images:", row.category, '--', 100. * float(index)/total_slices,'%', end='\r') 
             minc_pet_f = h5py.File(row.pet, 'r')
             minc_label_f = h5py.File(row.label, 'r')
             pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data

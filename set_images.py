@@ -84,7 +84,7 @@ def createdf(name, pet_names, pet, t1, labels, task=False):
     n = len(pet)
     datad = {}
     datad['subject'] = [name] * n
-    datad['radiotracer'] = pet_names
+    if pet_names != []: datad['radiotracer'] = pet_names
     datad['pet'] = pet
     datad['t1'] = [t1] * n
 
@@ -123,6 +123,8 @@ def process(name, source_dir, pet_list, t1_list, label_str='brainmask'):
     task_names = [sub('task-', '', g)
                   for f in pet for g in f.split('_') if 'task' in g]
 
+
+
     if len(task_names) == 0:
         label = glob(source_dir + os.sep + name +
                      os.sep + '*_labels_'+label_str+'.*')
@@ -130,7 +132,7 @@ def process(name, source_dir, pet_list, t1_list, label_str='brainmask'):
                                 pet, t1, label,
                                 task=False)
 
-    else:
+    else :
         labels = []
         for p, t in zip(pet, task_names):
             label_fn = glob(source_dir + os.sep + '*' + os.sep +
@@ -218,6 +220,7 @@ def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brain
     dfd = {}
     for name in names:
         data_subject = process(name, source_dir, pet_list, t1_list, label_str)
+        print(data_subject)
         dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
     # 4 - concatenation of the dict of df to a single df
     out = create_out(dfd)
