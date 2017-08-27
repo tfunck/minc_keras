@@ -4,9 +4,10 @@ from re import sub
 from sys import argv, exit
 from glob import glob
 import os
-from os.path import basename
+from os.path import basename, exists
+from os import makedirs
 
-def gather_dirs(source_dir):
+def gather_dirs(source_dir, input_str='acq'):
     ''' This function takes a source directory and parse it to extract the
         information and returns it as lists of strings.
 
@@ -20,7 +21,7 @@ def gather_dirs(source_dir):
         names (list of str): a list of subject names
     '''
     subject_dirs = glob(source_dir + os.sep + '*')
-    pet_list = glob(source_dir + os.sep + '*' + os.sep + '*_acq*')
+    pet_list = glob(source_dir + os.sep + '*' + os.sep + '*_'+input_str+'*')
     t1_list = glob(source_dir + os.sep + '*' + os.sep + '*_t1.*')
     names = [basename(f) for f in subject_dirs]
     return(subject_dirs, pet_list, t1_list, names)
@@ -95,7 +96,7 @@ def createdf(name, pet_names, pet, t1, labels, task=False):
     return(datad)
 
 
-def process(name, source_dir, pet_list, t1_list):
+def process(name, source_dir, pet_list, t1_list, label_str='brainmask'):
     ''' That function returns a dataframe that has all the information
         about a subject. At this point of the code, the category of
         a subject (train/test) is still unknown. Given the presence or
@@ -124,7 +125,7 @@ def process(name, source_dir, pet_list, t1_list):
 
     if len(task_names) == 0:
         label = glob(source_dir + os.sep + name +
-                     os.sep + '*_labels_brainmask.*')
+                     os.sep + '*_labels_'+label_str+'.*')
         data_subject = createdf(name, pet_names,
                                 pet, t1, label,
                                 task=False)
@@ -133,7 +134,7 @@ def process(name, source_dir, pet_list, t1_list):
         labels = []
         for p, t in zip(pet, task_names):
             label_fn = glob(source_dir + os.sep + '*' + os.sep +
-                            name + '*' + t + '*_labels_brainmask.*')[0]
+                            name + '*' + t + '*'+label_str+'.*')[0]
             labels.append(label_fn)
         data_subject = createdf(name, pet_names,
                                 pet, t1, labels,
@@ -189,7 +190,7 @@ def attribute_category(out, ratios):
     return(out)
 
 
-def set_images(source_dir, ratios):
+def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brainmask' ):
     ''' This function takes a source directory, where the data is, and a
         ratio list (split test/train).
         It returns a pd.DataFrame that links file names to concepts, like
@@ -204,9 +205,9 @@ def set_images(source_dir, ratios):
                 of the source_dir.
 
     '''
-    # 1 - gathering information (parsing the source directory)
-    subject_dirs, pet_list, t1_list, names = gather_dirs(source_dir)
 
+    # 1 - gathering information (parsing the source directory)
+    subject_dirs, pet_list, t1_list, names = gather_dirs(source_dir, input_str )
     # 2 - checking for potential errors
     if len(names) == 0:
         print_error_nosubject(source_dir)
@@ -216,9 +217,8 @@ def set_images(source_dir, ratios):
     # 3 - creating an empty directory of dataframes, then filling it.
     dfd = {}
     for name in names:
-        data_subject = process(name, source_dir, pet_list, t1_list)
+        data_subject = process(name, source_dir, pet_list, t1_list, label_str)
         dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
-
     # 4 - concatenation of the dict of df to a single df
     out = create_out(dfd)
 
@@ -226,7 +226,8 @@ def set_images(source_dir, ratios):
     out = attribute_category(out, ratios)
 
     # 6 - export and return
-    out.to_csv('images.csv')
+    if not exists(target_dir+os.sep+'report'): makedirs(target_dir+os.sep+'report') 
+    out.to_csv(target_dir+os.sep+'report'+os.sep+'images.csv', index=False)
     return out
 
 

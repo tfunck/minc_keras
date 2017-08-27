@@ -12,7 +12,9 @@ def make_model(batch_size):
 	model.add(Conv2D( 16 , [3,3],  activation='relu',padding='same'))
 	model.add(Conv2D(32, (3, 3), activation='relu',padding='same'))
 	model.add(Conv2D(64, (3, 3), activation='relu',padding='same'))
-	#model.add(Conv2D(64, (3, 3), activation='relu',padding='same'))
+	model.add(Conv2D(64, (3, 3), activation='relu',padding='same'))
+	model.add(Conv2D(64, (3, 3), activation='relu',padding='same'))
+	model.add(Conv2D(64, (3, 3), activation='relu',padding='same'))
 	model.add(Conv2D(1, kernel_size=1,  padding='same', activation='sigmoid'))
 
 	return(model)

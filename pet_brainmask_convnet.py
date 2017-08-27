@@ -7,7 +7,6 @@ from os import makedirs
 import argparse
 #local modules defined in current project
 from make_and_run_model import *
-from set_images import *
 from predict import *
 from prepare_data import *
 
@@ -34,9 +33,8 @@ def set_model_name(target_dir, feature_dim):
     if not exists(model_dir): makedirs(model_dir)
     return model_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5'
 
-def pet_brainmask_convnet(source_dir, target_dir, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name=False ):
-    images = prepare_data(source_dir, target_dir, ratios, batch_size,feature_dim, clobber)
-    
+def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name=False ):
+    images = prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size,feature_dim, clobber)
     ### 1) Define architecture of neural network
     model = make_model(batch_size)
 
@@ -73,7 +71,9 @@ if __name__ == '__main__':
     parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.3],  help='List of ratios for training, testing, and validating (default = 0.7 0.3')
     parser.add_argument('--predict', dest='predict', action='store_true', default=False, help='perform prediction only (assumes model file exists) ')
     parser.add_argument('--images-to-predict', dest='images_to_predict', type=str, default=None, help='either 1) \'all\' to predict all images OR a comma separated list of index numbers of images on which to perform prediction (by default perform none). example \'1,4,10\' ')
+    parser.add_argument('--input-str', dest='input_str', type=str, default='pet', help='String for input (X) images')
+    parser.add_argument('--label-str', dest='label_str', type=str, default='brainmask', help='String for label (Y) images')
     args = parser.parse_args()
     args.feature_dim =2
 
-    pet_brainmask_convnet(args.source_dir, args.target_dir, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name ,images_to_predict= args.images_to_predict)
+    pet_brainmask_convnet(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_name = args.model_name ,images_to_predict= args.images_to_predict)

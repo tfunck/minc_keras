@@ -84,10 +84,10 @@ def get_n_slices(train_fn, test_fn):
     return([nTrain,nTest])
 
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named test- and train-
-def prepare_data(source_dir, target_dir, ratios, batch_size, feature_dim=2, clobber=False):
+def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size, feature_dim=2, clobber=False):
     ### 1) Organize inputs into a data frame, match each PET image with label image
-    images = set_images(source_dir, ratios)
 
+    images = set_images(source_dir, target_dir, ratios, input_str, label_str )
     ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
     minc_label_f = h5py.File(label_fn, 'r')
@@ -97,11 +97,11 @@ def prepare_data(source_dir, target_dir, ratios, batch_size, feature_dim=2, clob
 
     ### 3) Set up dimensions of data tensors to be used for training and testing. all of the
     #data that we will use for training with be stored here.
-    if feature_dim ==3 : #tensor_dim = [nImages]+image_dim
+    if feature_dim ==3 : 
         samples_per_subject = 1
-    elif feature_dim ==2 : #tensor_dim = [nImages*image_dim[0]]+image_dim[1:3]
+    elif feature_dim ==2 : 
         samples_per_subject = image_dim[0]
-    elif feature_dim ==1 : #tensor_dim = [nImages*image_dim[0]*image_dim[1]]+[image_dim[2]]
+    elif feature_dim ==1 : 
         samples_per_subject = image_dim[0]*image_dim[1]
 
     train_images = images[images['category']=='train'].reset_index()
