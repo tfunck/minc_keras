@@ -220,7 +220,6 @@ def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brain
     dfd = {}
     for name in names:
         data_subject = process(name, source_dir, pet_list, t1_list, label_str)
-        print(data_subject)
         dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
     # 4 - concatenation of the dict of df to a single df
     out = create_out(dfd)
