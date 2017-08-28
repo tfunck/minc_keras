@@ -47,7 +47,7 @@ def feature_extraction(images, samples_per_subject, x_output_file, y_output_file
             if Y.sum() == 0:
                 index_bad_Y.append(i)
         
-        not_index_bad_X = [i for i in range(f['image'].shape[0]) if i not in index_bad_X]
+        not_index_bad_X = [i for i in range(f['image'].shape[0]) if i not in [index_bad_X, index_bad_Y]]
         #not_index_bad_Y = [i for i in range(f['label'].shape[0]) if i not in index_bad_Y]
         clean_X = f['image'][not_index_bad_X]
         clean_Y = f['label'][not_index_bad_X]
