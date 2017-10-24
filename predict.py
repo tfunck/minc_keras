@@ -3,24 +3,14 @@ import scipy as sp
 import pandas as pd
 from os.path import basename, exists, splitext
 from os import makedirs
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from re import sub
 from keras.models import  load_model
 from prepare_data import * 
-import matplotlib.gridspec as gridspec
-def normalize(A):
-    '''performs a simple normalization from 0 to 1 of a numpy array. checks that the image is not a uniform value first
 
-    args
-        A -- numpy array
-    
-    returns
-        numpy array (either A or normalized version of A)
-    '''
-    scale_factor=(np.max(A)-np.min(A))
-    if scale_factor==0: return A
-
-    return (A - np.min(A))/scale_factor
 
 def save_image(X_test, X_predict, Y_test ,output_fn, slices=None, nslices=25 ):
     '''
@@ -94,10 +84,8 @@ def set_output_image_fn(pet_fn, predict_dir, verbose=1):
     '''
     pet_basename = splitext(basename(pet_fn))[0]
     name=[ f for f in pet_basename.split('_') if 'sub' in f.split('-') ][0]
-    image_predict_dir=predict_dir+os.sep+name +os.sep
-    if not exists(image_predict_dir): makedirs(image_predict_dir)
     
-    image_fn = image_predict_dir + pet_basename + '_predict.png'
+    image_fn = predict_dir +os.sep + pet_basename + '_predict.png'
     
     if verbose >= 2 : print('Saving to:', image_fn) 
     
@@ -185,7 +173,7 @@ def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
     if verbose >= 1: print("Data loaded for prediction")
   
 
-    predict_dir = target_dir + 'predict' + os.sep
+    predict_dir = target_dir + os.sep + 'predict' + os.sep
     
     for i in images_to_predict:
         pet_fn=test_images.iloc[i,].pet

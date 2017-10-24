@@ -7,12 +7,16 @@ import os
 from os.path import basename, exists
 from os import makedirs
 
-def gather_dirs(source_dir, input_str='acq'):
+
+
+def gather_dirs(source_dir, input_str='acq', ext='mnc'):
     ''' This function takes a source directory and parse it to extract the
         information and returns it as lists of strings.
 
     Args:
         source_dir (str): the directory where the data is
+        input_str (str): string that uniquely identifies the input (pet) images in subject directory
+        ext (str) : string the identifies extension of file (default==nifti)
 
     Returns:
         subject_dir (list of str): a list of directories, one per subject
@@ -20,11 +24,14 @@ def gather_dirs(source_dir, input_str='acq'):
         t1_list (list of str): a list of directories, one per t1 image
         names (list of str): a list of subject names
     '''
-    subject_dirs = glob(source_dir + os.sep + '*')
-    pet_list = glob(source_dir + os.sep + '*' + os.sep + '*_'+input_str+'*')
-    t1_list = glob(source_dir + os.sep + '*' + os.sep + '*_t1.*')
+
+    subject_dirs = glob(source_dir + os.sep + '*', recursive=True)
+    pet_list = glob(source_dir + os.sep + '**' + os.sep + '*'+input_str+'.'+ext, recursive=True)
+    if len(pet_list) == 0 : print('Warning: could not find input file of form:', source_dir + os.sep + '**' + os.sep + '*_'+input_str+'.'+ext)
+    #t1_list = glob(source_dir + os.sep + '**' + os.sep + "*_T1w" + '.' +ext, recursive=True)
     names = [basename(f) for f in subject_dirs]
-    return(subject_dirs, pet_list, t1_list, names)
+    #return(subject_dirs, pet_list, t1_list, names)
+    return(subject_dirs, pet_list, names)
 
 
 def print_error_nosubject(source_dir):
@@ -57,7 +64,8 @@ def print_error_nosumone(ratio):
     exit()
 
 
-def createdf(name, pet_names, pet, t1, labels, task=False):
+#def createdf(name, pet_names, pet, t1, labels, task=False):
+def createdf(name, pet_names, pet, labels, task=False):
     ''' This function creates a  dataframe for a given subject.
         The dataframe contains information about the files related to
         the given subject.
@@ -86,7 +94,7 @@ def createdf(name, pet_names, pet, t1, labels, task=False):
     datad['subject'] = [name] * n
     if pet_names != []: datad['radiotracer'] = pet_names
     datad['pet'] = pet
-    datad['t1'] = [t1] * n
+    #datad['t1'] = [t1] * n
 
     if task is not False:
         datad['label'] = labels
@@ -96,7 +104,8 @@ def createdf(name, pet_names, pet, t1, labels, task=False):
     return(datad)
 
 
-def process(name, source_dir, pet_list, t1_list, label_str='brainmask'):
+def process(name, source_dir, pet_list,  label_str='brainmask', ext='mnc' ):
+#def process(name, source_dir, pet_list, t1_list, label_str='brainmask', ext='mnc' ):
     ''' That function returns a dataframe that has all the information
         about a subject. At this point of the code, the category of
         a subject (train/test) is still unknown. Given the presence or
@@ -117,30 +126,36 @@ def process(name, source_dir, pet_list, t1_list, label_str='brainmask'):
 
     '''
     pet = [f for f in pet_list if name in f]
-    t1 = [f for f in t1_list if name in f][0]
+    
+    #t1 = [f for f in t1_list if name in f]
+    #if not t1 == [] : t1=t1[0]
+    #else: 
+    #    print('Warning: Subject name '+name+' not found in list of t1 images.')
+    #    return(1)
     pet_names = [sub('.mnc', '', sub('acq-', '', g))
                  for f in pet for g in f.split('_') if 'acq' in g]
     task_names = [sub('task-', '', g)
                   for f in pet for g in f.split('_') if 'task' in g]
 
-
-
     if len(task_names) == 0:
-        label = glob(source_dir + os.sep + name +
-                     os.sep + '*_labels_'+label_str+'.*')
-        data_subject = createdf(name, pet_names,
-                                pet, t1, label,
-                                task=False)
+        #label = glob(source_dir + os.sep + name +  os.sep + '*_labels_'+label_str+'.'+ext)
+        label = glob(source_dir + os.sep + '**' +  os.sep + '*'+label_str+'.'+ext, recursive=True)
+        #data_subject = createdf(name, pet_names,  pet, t1, label, task=False)
+        data_subject = createdf(name, pet_names,  pet, label, task=False)
 
     else :
         labels = []
         for p, t in zip(pet, task_names):
-            label_fn = glob(source_dir + os.sep + '*' + os.sep +
-                            name + '*' + t + '*'+label_str+'.*')[0]
+            label_fn = glob(source_dir + os.sep + '**' + os.sep + name + '*' + t + '*'+label_str+'.'+ext, recursive=True)
+            if not label_fn == []: label_fn = label_fn[0]
+            else: 
+                print('Warning: could not find label for ', name, 'with the form:')
+                print(source_dir + os.sep + '**' + os.sep + name + '*' + t + '*'+label_str+'.'+ext)
+                return(1)
+            
             labels.append(label_fn)
-        data_subject = createdf(name, pet_names,
-                                pet, t1, labels,
-                                task=task_names)
+        #data_subject = createdf(name, pet_names,pet, t1, labels,task=task_names)
+        data_subject = createdf(name, pet_names,pet, labels,task=task_names)
     return(data_subject)
 
 
@@ -157,6 +172,10 @@ def create_out(dfd):
             the index is reset.
 
     '''
+    if len(list(dfd.keys())) == 0 :
+        print('Error: subject data frame was empty')
+        exit(1)
+
     out = pd.DataFrame(columns=dfd[list(dfd.keys())[0]].columns)
     for k, v in dfd.items():
         out = pd.concat([out, v])
@@ -182,8 +201,7 @@ def attribute_category(out, ratios):
 
     '''
     nSubjects = len(out.subject.unique())
-    i_train = np.random.choice(
-        np.arange(nSubjects), int(ratios[0] * nSubjects))
+    i_train = np.random.choice( np.arange(nSubjects), int(ratios[0] * nSubjects))
     train_or_test_by_subject = [
         'train' if i in i_train else 'test' for i in range(nSubjects)]
     images_per_subject = out.groupby(["subject"]).category.count().values
@@ -192,7 +210,7 @@ def attribute_category(out, ratios):
     return(out)
 
 
-def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brainmask' ):
+def set_images(source_dir, target_dir, ratios, input_str='pet', label_str='brainmask', ext='mnc' ):
     ''' This function takes a source directory, where the data is, and a
         ratio list (split test/train).
         It returns a pd.DataFrame that links file names to concepts, like
@@ -201,7 +219,10 @@ def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brain
 
         Args:
             source_dir (str): the directory where the data is
-
+            target_dir (str): the directory where the results will go
+            input_str  (str): string used to identify input files
+            label_str  (str): string used to identify label files
+            ext (str) : string the identifies extension of file (default==nifti)
         Returns:
             out (pd.DataFrame): a dataframe that synthesises the information
                 of the source_dir.
@@ -209,7 +230,9 @@ def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brain
     '''
 
     # 1 - gathering information (parsing the source directory)
-    subject_dirs, pet_list, t1_list, names = gather_dirs(source_dir, input_str )
+    #subject_dirs, pet_list, t1_list, names = gather_dirs(source_dir, input_str, ext )
+    subject_dirs, pet_list, names = gather_dirs(source_dir, input_str, ext )
+    
     # 2 - checking for potential errors
     if len(names) == 0:
         print_error_nosubject(source_dir)
@@ -219,11 +242,11 @@ def set_images(source_dir, target_dir, ratios, input_str='acq', label_str='brain
     # 3 - creating an empty directory of dataframes, then filling it.
     dfd = {}
     for name in names:
-        data_subject = process(name, source_dir, pet_list, t1_list, label_str)
-        dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
+        data_subject = process(name, source_dir, pet_list, label_str, ext)
+        #data_subject = process(name, source_dir, pet_list, t1_list, label_str, ext)
+        if not data_subject == 1: dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
     # 4 - concatenation of the dict of df to a single df
     out = create_out(dfd)
-
     # 5 - attributing a test/train category for all subject
     out = attribute_category(out, ratios)
 

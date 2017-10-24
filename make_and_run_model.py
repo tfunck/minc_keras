@@ -5,15 +5,15 @@ from keras.layers.convolutional import Conv1D, Conv2D, Conv3D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D
 from keras.layers.core import Dropout
-def make_model(batch_size):
+def make_model(batch_size, image_dim):
     model = Sequential()
-    model.add(BatchNormalization(batch_input_shape=(batch_size,217,181,1)))
+    model.add(BatchNormalization(batch_input_shape=(batch_size,image_dim[1],image_dim[2],1)))
     model.add(Conv2D( 16 , [3,3],  activation='relu',padding='same'))
+    #model.add(Dropout(0.2))
+    model.add(Conv2D( 32 , [3,3],  activation='relu',padding='same'))
+    #model.add(Dropout(0.2))
+    model.add(Conv2D( 64 , [3,3],  activation='relu',padding='same'))
     model.add(Dropout(0.2))
-    #model.add(Conv2D( 16 , [3,3],  activation='relu',padding='same'))
-    #model.add(Dropout(0.2))
-    #model.add(Conv2D( 16 , [3,3],  activation='relu',padding='same'))
-    #model.add(Dropout(0.2))
     #model.add(Conv2D( 16 , [3,3],  activation='relu',padding='same'))
     #model.add(Dropout(0.2))
     #model.add(Conv2D( 16 , [3,3],  activation='relu',padding='same'))

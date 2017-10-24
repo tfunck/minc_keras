@@ -11,17 +11,40 @@ from os.path import basename, exists
 from os import makedirs
 from set_images import *
 
-def feature_extraction(images, samples_per_subject, x_output_file, y_output_file,target_dir, clobber):
+def safe_h5py_open(filename, mode):
+    try :
+        f = h5py.File(filename, mode)
+        return f
+    except OSError :
+        print('Error: Could not open', filename)
+        exit(1)
+
+
+def normalize(A):
+    '''performs a simple normalization from 0 to 1 of a numpy array. checks that the image is not a uniform value first
+
+    args
+        A -- numpy array
+    
+    returns
+        numpy array (either A or normalized version of A)
+    '''
+    scale_factor=(np.max(A)-np.min(A))
+    if scale_factor==0: return A
+
+    return (A - np.min(A))/scale_factor
+
+def feature_extraction(images, samples_per_subject, image_dim, x_output_file, y_output_file,target_dir, clobber):
     nSubjects= images.shape[0] #total number f subjects
     total_slices = nSubjects * samples_per_subject
     if not exists(x_output_file+'.npy') or not exists(y_output_file+'.npy') or clobber:
         f = h5py.File(target_dir+os.sep+'temp.hdf5', "w")
-        X_f = f.create_dataset("image", [total_slices,217,181,1], dtype='float16')
-        Y_f = f.create_dataset("label", [total_slices,217,181,1], dtype='float16')
+        X_f = f.create_dataset("image", [total_slices,image_dim[1],image_dim[2],1], dtype='float16')
+        Y_f = f.create_dataset("label", [total_slices,image_dim[1],image_dim[2],1], dtype='float16')
         for index, row in images.iterrows():
-            if index % 10 == 0: print("Saving images:", row.category, '--', 100. * float(index)/total_slices,'%', end='\r') 
-            minc_pet_f = h5py.File(row.pet, 'r')
-            minc_label_f = h5py.File(row.label, 'r')
+            if index % 10 == 0: print("Saving images:", row.category, '--', 100. * round(float(index)/total_slices, 3),'%', end='\r') 
+            minc_pet_f = safe_h5py_open(row.pet, 'r')
+            minc_label_f = safe_h5py_open(row.label, 'r')
             pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
                 
             #sum the pet image if it is a 4d volume
@@ -30,7 +53,7 @@ def feature_extraction(images, samples_per_subject, x_output_file, y_output_file
             #pet = (pet - pet.min())/(pet.max() - pet.min())
             pet=pet.reshape(list(pet.shape)+[1])
 
-            label = (label - label.min())/(label.max() - label.min())
+            label = normalize(label) #(label - label.min())/(label.max() - label.min())
             label=label.reshape(list(label.shape)+[1])
             for j in range(samples_per_subject):
                 f['image'][(index*samples_per_subject+j)] = pet[j]
@@ -46,8 +69,8 @@ def feature_extraction(images, samples_per_subject, x_output_file, y_output_file
             Y = f['label'][i]
             if Y.sum() == 0:
                 index_bad_Y.append(i)
-        
-        not_index_bad_X = [i for i in range(f['image'].shape[0]) if i not in [index_bad_X, index_bad_Y]]
+        #Not a good idea to include "index_bad_Y" bc will lead to exclusion of relevant slices
+        not_index_bad_X = [i for i in range(f['image'].shape[0]) if i not in [index_bad_X]]
         #not_index_bad_Y = [i for i in range(f['label'].shape[0]) if i not in index_bad_Y]
         clean_X = f['image'][not_index_bad_X]
         clean_Y = f['label'][not_index_bad_X]
@@ -88,12 +111,15 @@ def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_siz
     ### 1) Organize inputs into a data frame, match each PET image with label image
 
     images = set_images(source_dir, target_dir, ratios, input_str, label_str )
+
     ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
-    minc_label_f = h5py.File(label_fn, 'r')
+    print (label_fn)
+    minc_label_f = safe_h5py_open(label_fn, 'r')
     label_img = np.array(minc_label_f['minc-2.0/']['image']['0']['image'])
     image_dim = list(label_img.shape) #load label file and get its dimensions
     nImages = images.shape[0] #the number of images is the number of rows in the images dataframe
+    del label_img
 
     ### 3) Set up dimensions of data tensors to be used for training and testing. all of the
     #data that we will use for training with be stored here.
@@ -117,10 +143,10 @@ def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_siz
     prepare_data.train_y_fn = data_dir + os.sep + 'train_y'
     prepare_data.test_x_fn = data_dir + os.sep + 'test_x'
     prepare_data.test_y_fn = data_dir + os.sep + 'test_y'
-    feature_extraction(train_images, samples_per_subject, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
-    feature_extraction(test_images, samples_per_subject, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
+    feature_extraction(train_images, samples_per_subject, image_dim, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
+    feature_extraction(test_images, samples_per_subject, image_dim, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
 
     train_total_samples, test_total_samples = get_n_slices(prepare_data.train_x_fn, prepare_data.test_x_fn)
     prepare_data.samples_per_subject = int((train_total_samples+test_total_samples) / (train_total_images + test_total_images))
     prepare_data.batch_size = adjust_batch_size(train_total_samples, test_total_samples, batch_size)
-    return images 
+    return [ images, image_dim ] 

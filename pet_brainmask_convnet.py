@@ -34,9 +34,9 @@ def set_model_name(target_dir, feature_dim):
     return model_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5'
 
 def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name=False, verbose=1 ):
-    images = prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size,feature_dim, clobber)
+    [images, image_dim] = prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size,feature_dim, clobber)
     ### 1) Define architecture of neural network
-    model = make_model(batch_size)
+    model = make_model(batch_size, image_dim)
 
     ### 2) Train network on data
 
@@ -68,8 +68,7 @@ if __name__ == '__main__':
     parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--model', dest='model_name', default=None,  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
     parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.3],  help='List of ratios for training, testing, and validating (default = 0.7 0.3')
-    parser.add_argument('--predict', dest='predict', action='store_true', default=False, help='perform prediction only (assumes model file exists) ')
-    parser.add_argument('--images-to-predict', dest='images_to_predict', type=str, default=None, help='either 1) \'all\' to predict all images OR a comma separated list of index numbers of images on which to perform prediction (by default perform none). example \'1,4,10\' ')
+    parser.add_argument('--predict', dest='images_to_predict', type=str, default=None, help='either 1) \'all\' to predict all images OR a comma separated list of index numbers of images on which to perform prediction (by default perform none). example \'1,4,10\' ')
     parser.add_argument('--input-str', dest='input_str', type=str, default='pet', help='String for input (X) images')
     parser.add_argument('--label-str', dest='label_str', type=str, default='brainmask', help='String for label (Y) images')
     parser.add_argument('--clobber', dest='clobber',  action='store_true', default=False,  help='clobber')
