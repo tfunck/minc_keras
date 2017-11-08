@@ -42,7 +42,7 @@ def feature_extraction(images, samples_per_subject, image_dim, x_output_file, y_
         X_f = f.create_dataset("image", [total_slices,image_dim[1],image_dim[2],1], dtype='float16')
         Y_f = f.create_dataset("label", [total_slices,image_dim[1],image_dim[2],1], dtype='float16')
         for index, row in images.iterrows():
-            if index % 10 == 0: print("Saving images:", row.category, '--', 100. * round(float(index)/total_slices, 3),'%', end='\r') 
+            if index % 10 == 0: print("Saving images:",index , end='\r') 
             minc_pet_f = safe_h5py_open(row.pet, 'r')
             minc_label_f = safe_h5py_open(row.label, 'r')
             pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
@@ -72,8 +72,8 @@ def feature_extraction(images, samples_per_subject, image_dim, x_output_file, y_
         #Not a good idea to include "index_bad_Y" bc will lead to exclusion of relevant slices
         not_index_bad_X = [i for i in range(f['image'].shape[0]) if i not in [index_bad_X]]
         #not_index_bad_Y = [i for i in range(f['label'].shape[0]) if i not in index_bad_Y]
-        clean_X = f['image'][not_index_bad_X]
-        clean_Y = f['label'][not_index_bad_X]
+        clean_X = f['image']#[not_index_bad_X]
+        clean_Y = f['label']#[not_index_bad_X]
         np.save(x_output_file,clean_X)
         np.save(y_output_file,clean_Y)
 
@@ -106,15 +106,21 @@ def get_n_slices(train_fn, test_fn):
     del X_test
     return([nTrain,nTest])
 
+def set_onehot(images, dim, filename):
+    onehot = np.array([np.repeat(i, dim) for i in images.onehot ]).reshape(-1)
+    np.save(filename, onehot)
+    return(0)
+     
+
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named test- and train-
-def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size, feature_dim=2, clobber=False):
+def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size, feature_dim=2, onehot_label=None, clobber=False):
     ### 1) Organize inputs into a data frame, match each PET image with label image
 
     images = set_images(source_dir, target_dir, ratios, input_str, label_str )
+    
 
     ### 2) 
     label_fn=images.iloc[0].label #get the filename for first label file
-    print (label_fn)
     minc_label_f = safe_h5py_open(label_fn, 'r')
     label_img = np.array(minc_label_f['minc-2.0/']['image']['0']['image'])
     image_dim = list(label_img.shape) #load label file and get its dimensions
@@ -135,13 +141,17 @@ def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_siz
     
     train_total_images = train_images.shape[0]
     test_total_images = test_images.shape[0]
+
+
     
-    data_dir = target_dir + 'data' + os.sep
+    data_dir = target_dir + os.sep + 'data' + os.sep
     if not exists(data_dir): makedirs(data_dir)
 
     prepare_data.train_x_fn = data_dir + os.sep + 'train_x'
+    prepare_data.train_onehot_fn = data_dir + os.sep + 'train_onehot'
     prepare_data.train_y_fn = data_dir + os.sep + 'train_y'
     prepare_data.test_x_fn = data_dir + os.sep + 'test_x'
+    prepare_data.test_onehot_fn = data_dir + os.sep + 'test_onehot'
     prepare_data.test_y_fn = data_dir + os.sep + 'test_y'
     feature_extraction(train_images, samples_per_subject, image_dim, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
     feature_extraction(test_images, samples_per_subject, image_dim, prepare_data.test_x_fn, prepare_data.test_y_fn, target_dir, clobber)
@@ -149,4 +159,7 @@ def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_siz
     train_total_samples, test_total_samples = get_n_slices(prepare_data.train_x_fn, prepare_data.test_x_fn)
     prepare_data.samples_per_subject = int((train_total_samples+test_total_samples) / (train_total_images + test_total_images))
     prepare_data.batch_size = adjust_batch_size(train_total_samples, test_total_samples, batch_size)
+    if not exists(prepare_data.train_onehot_fn) or clobber: set_onehot(train_images, image_dim[0], prepare_data.train_onehot_fn)
+    if not exists(prepare_data.test_onehot_fn) or clobber: set_onehot(test_images, image_dim[0], prepare_data.test_onehot_fn)
+
     return [ images, image_dim ] 

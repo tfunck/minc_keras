@@ -6,8 +6,8 @@ from glob import glob
 import os
 from os.path import basename, exists
 from os import makedirs
-
-
+import time
+np.random.seed(int(time.time()))
 
 def gather_dirs(source_dir, input_str='acq', ext='mnc'):
     ''' This function takes a source directory and parse it to extract the
@@ -24,7 +24,7 @@ def gather_dirs(source_dir, input_str='acq', ext='mnc'):
         t1_list (list of str): a list of directories, one per t1 image
         names (list of str): a list of subject names
     '''
-
+    input_str = os.path.splitext(input_str)[0]
     subject_dirs = glob(source_dir + os.sep + '*', recursive=True)
     pet_list = glob(source_dir + os.sep + '**' + os.sep + '*'+input_str+'.'+ext, recursive=True)
     if len(pet_list) == 0 : print('Warning: could not find input file of form:', source_dir + os.sep + '**' + os.sep + '*_'+input_str+'.'+ext)
@@ -137,6 +137,7 @@ def process(name, source_dir, pet_list,  label_str='brainmask', ext='mnc' ):
     task_names = [sub('task-', '', g)
                   for f in pet for g in f.split('_') if 'task' in g]
 
+    label_str = os.path.splitext(label_str)[0]
     if len(task_names) == 0:
         #label = glob(source_dir + os.sep + name +  os.sep + '*_labels_'+label_str+'.'+ext)
         label = glob(source_dir + os.sep + '**' +  os.sep + '*'+label_str+'.'+ext, recursive=True)
@@ -184,8 +185,10 @@ def create_out(dfd):
     return(out)
 
 
-def attribute_category(out, ratios):
-    ''' This function distributes each subject in a 'train' or 'test' category.
+def attribute_category(out, ratios, verbose=0):
+    ''' This function distributes each subject in a 'train' or 'test' category. The 'train' and 'test' 
+        categories are assigned so as to make sure that all of the different radiotracers are contained 
+        within the 'train' category.
 
     Args:
         out (pd.DataFrame): a pd.DataFrame that contains the info of all files
@@ -200,13 +203,39 @@ def attribute_category(out, ratios):
             The value of test or train is the same for a given subject.
 
     '''
-    nSubjects = len(out.subject.unique())
-    i_train = np.random.choice( np.arange(nSubjects), int(ratios[0] * nSubjects))
-    train_or_test_by_subject = [
-        'train' if i in i_train else 'test' for i in range(nSubjects)]
-    images_per_subject = out.groupby(["subject"]).category.count().values
-    out.category = list(np.repeat(train_or_test_by_subject,
-                                  images_per_subject))
+    nImages = out.shape[0]
+    nTrain= int(ratios[0] * nImages)
+    radiotracers = pd.Series(out.radiotracer)
+    n_images = radiotracers.shape[0]
+    unique_radiotracers = np.unique(radiotracers)
+    n_unique_radiotracer = len(unique_radiotracers)
+    training_i=0 #variable to keep track of how many images have been added to training category
+
+    #iterate over number of training images
+    #note 1:    training_i is used in case the number of images is not evenly divided by the number of radiotracers
+    #           example: if we have 23 images and 5 types of radiotracer. because range(0,23,5) = [0,5,10,15,20], 
+    #           this means we would iterate over the radiotracer types 5 times and hence add 5*5=25 images to the 
+    #           training set. by breaking when training_i >= nImages, we stop the for-loops once we have a sufficient
+    #           number of images in the 'train' set. 
+    for i  in range(0, nTrain+n_unique_radiotracer, n_unique_radiotracer):
+        for r in unique_radiotracers : #r is a specific radiotracer
+            temp_radiotracer_list = radiotracers[ radiotracers == r ]
+            indices = radiotracers.index[radiotracers == r]
+
+            #if there are no more of radiotracer r in the list radiotracers, 
+            #then just skip to next iteration of for-loop
+            if temp_radiotracer_list.shape[0] <=1 : continue
+            random_i = np.random.randint(len(temp_radiotracer_list)) #randomly select one of the r from temp_radiotracers
+            idx=indices[random_i]
+            radiotracers.drop(idx , inplace=True) #remove random_i from list of radiotracers --> sampling without replacement
+            radiotracers.reindex()
+            out.category.iloc[idx]='train'
+            training_i += 1
+            if training_i > nTrain : break #break if we have enough training samples
+
+    out.category.loc[ out.category != 'train'  ] = 'test' #all remaining images are set to 'test'
+    if verbose > 0 : print("Expected Ratio: %3.3f, Real ratio=%3.3f" % (100. * ratios[0], 100.*out.category.loc[ out.category =='train'].shape[0]/nImages ))
+    
     return(out)
 
 
@@ -247,6 +276,13 @@ def set_images(source_dir, target_dir, ratios, input_str='pet', label_str='brain
         if not data_subject == 1: dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
     # 4 - concatenation of the dict of df to a single df
     out = create_out(dfd)
+
+    ## 4.5) create one hot label for pet images
+    unique_radiotracers = dict( enumerate( out.radiotracer.unique() ) )
+    unique_one_hot =  dict([ (item, key) for key, item in unique_radiotracers.items() ]) 
+    out["onehot"] = [ unique_one_hot[i] for i in out.radiotracer ] 
+    
+    
     # 5 - attributing a test/train category for all subject
     out = attribute_category(out, ratios)
 
