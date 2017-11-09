@@ -11,6 +11,8 @@ from predict import *
 from prepare_data import *
 from ntpath import basename
 from os.path import splitext
+from utils import set_model_name
+
 # fix random seed for reproducibility
 np.random.seed(8)
 def generator(f, batch_size):
@@ -28,14 +30,7 @@ def generator(f, batch_size):
        
 
 
-def set_model_name(model_name, target_dir, feature_dim):
-    '''function to set default model name'''
-    model_dir=target_dir+os.sep+'model'
-    if not exists(model_dir): makedirs(model_dir)
-    
-    if model_name == None:  
-        return model_dir+os.sep+ 'model_'+str(feature_dim)+'.hdf5'
-    return  model_dir+os.sep+splitext(basename(model_name))[0]+'.hdf5'
+
 
 
 def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name=False, onehot_label=None, verbose=1 ):
@@ -45,8 +40,8 @@ def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, 
 
     ### 2) Train network on data
 
-    model_name =set_model_name(model_name, target_dir, feature_dim)
-    print 'Model:', model_name
+    model_name =set_model_name(model_name, target_dir)
+    print( 'Model:', model_name)
     if not exists(model_name) or clobber:
     #If model_name does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it

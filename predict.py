@@ -54,6 +54,8 @@ def save_image(X_test, X_predict, Y_test ,output_fn, slices=None, nslices=25 ):
             A=normalize(X_test[s])
             B=normalize(X_predict[s])
             C=normalize(Y_test[s])
+            print(A.max(), B.max(), C.max())
+            print(A.mean(), B.mean(), C.mean())
             ABC = np.concatenate([A,B,C], axis=1)
 
             #use imwshow to display all three images

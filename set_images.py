@@ -238,8 +238,29 @@ def attribute_category(out, ratios, verbose=0):
     
     return(out)
 
+def set_valid_samples(images):
+    '''for each image, identify the number of samples that are valid. some samples should be excluded because they contain
+    bad or no information
+    
+    '''
+    total_slices=0
+    images['valid_samples']=np.repeat(0, images.shape[0])
+    images['total_samples']=np.repeat(0, images.shape[0])
+    for index, row in images.iterrows():
+        minc_pet_f = safe_h5py_open(row.pet, 'r')
+        pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image'])
+        if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
 
-def set_images(source_dir, target_dir, ratios, input_str='pet', label_str='brainmask', ext='mnc' ):
+        images['total_samples'].iloc[index] = pet.shape[0]
+        valid_slices = 0
+        for j in range(pet.shape[0]):
+            if pet[j].sum() != 0 : 
+                valid_slices += 1
+        images['valid_samples'].iloc[index] = valid_slices
+        total_slices += valid_slices
+    return(total_slices)
+
+def set_images(source_dir, target_dir, ratios,image_fn, input_str='pet', label_str='brainmask', ext='mnc' ):
     ''' This function takes a source directory, where the data is, and a
         ratio list (split test/train).
         It returns a pd.DataFrame that links file names to concepts, like
@@ -286,9 +307,12 @@ def set_images(source_dir, target_dir, ratios, input_str='pet', label_str='brain
     # 5 - attributing a test/train category for all subject
     out = attribute_category(out, ratios)
 
+    #5.5 Set the number of valid samples per image (some samples exluded because they contain no information)
+    set_valid_samples(out)
+
     # 6 - export and return
     if not exists(target_dir+os.sep+'report'): makedirs(target_dir+os.sep+'report') 
-    out.to_csv(target_dir+os.sep+'report'+os.sep+'images.csv', index=False)
+    out.to_csv(image_fn, index=False)
     return out
 
 
