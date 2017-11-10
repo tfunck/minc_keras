@@ -7,6 +7,7 @@ import os
 from os.path import basename, exists
 from os import makedirs
 import time
+from utils import *
 np.random.seed(int(time.time()))
 
 def gather_dirs(source_dir, input_str='acq', ext='mnc'):
@@ -184,8 +185,7 @@ def create_out(dfd):
     out.reset_index(inplace=True, drop=True)
     return(out)
 
-
-def attribute_category(out, ratios, verbose=0):
+def attribute_category(out, category, ratio,  verbose=1):
     ''' This function distributes each subject in a 'train' or 'test' category. The 'train' and 'test' 
         categories are assigned so as to make sure that all of the different radiotracers are contained 
         within the 'train' category.
@@ -201,42 +201,31 @@ def attribute_category(out, ratios, verbose=0):
             by subject where the 'category' column has been set to either
             train or test depending the result of the random draw.
             The value of test or train is the same for a given subject.
-
     '''
-    nImages = out.shape[0]
-    nTrain= int(ratios[0] * nImages)
+    nImages=out.shape[0]
+    n = int(round(nImages * ratio))
+    i=0
+
     radiotracers = pd.Series(out.radiotracer)
-    n_images = radiotracers.shape[0]
     unique_radiotracers = np.unique(radiotracers)
-    n_unique_radiotracer = len(unique_radiotracers)
-    training_i=0 #variable to keep track of how many images have been added to training category
+    while True : 
+        for r in unique_radiotracers :
+            unknown_df = out[ (out.category == "unknown") & (radiotracers == r) ]
+            n_unknown = unknown_df.shape[0]
+            if n_unknown == 0: continue
+            random_i = np.random.randint(0,n_unknown)
+            row = out[out.category == "unknown"].iloc[random_i,]
+            out.loc[ out.index[out.subject == row.subject ], 'category'  ]=category
+            i +=  out.loc[ out.index[out.subject == row.subject ], 'category'  ].shape[0]
+            if i >= n : break
 
-    #iterate over number of training images
-    #note 1:    training_i is used in case the number of images is not evenly divided by the number of radiotracers
-    #           example: if we have 23 images and 5 types of radiotracer. because range(0,23,5) = [0,5,10,15,20], 
-    #           this means we would iterate over the radiotracer types 5 times and hence add 5*5=25 images to the 
-    #           training set. by breaking when training_i >= nImages, we stop the for-loops once we have a sufficient
-    #           number of images in the 'train' set. 
-    for i  in range(0, nTrain+n_unique_radiotracer, n_unique_radiotracer):
-        for r in unique_radiotracers : #r is a specific radiotracer
-            temp_radiotracer_list = radiotracers[ radiotracers == r ]
-            indices = radiotracers.index[radiotracers == r]
-
-            #if there are no more of radiotracer r in the list radiotracers, 
-            #then just skip to next iteration of for-loop
-            if temp_radiotracer_list.shape[0] <=1 : continue
-            random_i = np.random.randint(len(temp_radiotracer_list)) #randomly select one of the r from temp_radiotracers
-            idx=indices[random_i]
-            radiotracers.drop(idx , inplace=True) #remove random_i from list of radiotracers --> sampling without replacement
-            radiotracers.reindex()
-            out.category.iloc[idx]='train'
-            training_i += 1
-            if training_i > nTrain : break #break if we have enough training samples
-
-    out.category.loc[ out.category != 'train'  ] = 'test' #all remaining images are set to 'test'
-    if verbose > 0 : print("Expected Ratio: %3.3f, Real ratio=%3.3f" % (100. * ratios[0], 100.*out.category.loc[ out.category =='train'].shape[0]/nImages ))
+        n_unknown = out[ (out.category == "unknown") & (radiotracers == r) ].shape[0]
+        if i >= n or n_unknown == 0  : break
     
-    return(out)
+    if verbose > 0 : 
+        print(category, ": expected/real ratio = %3.2f / %3.2f" % (100. * ratio, 100.*out.category.loc[ out.category ==category].shape[0]/nImages ))
+
+
 
 def set_valid_samples(images):
     '''for each image, identify the number of samples that are valid. some samples should be excluded because they contain
@@ -260,7 +249,7 @@ def set_valid_samples(images):
         total_slices += valid_slices
     return(total_slices)
 
-def set_images(source_dir, target_dir, ratios,image_fn, input_str='pet', label_str='brainmask', ext='mnc' ):
+def set_images(source_dir, target_dir, ratios, images_fn, input_str='pet', label_str='brainmask', ext='mnc' ):
     ''' This function takes a source directory, where the data is, and a
         ratio list (split test/train).
         It returns a pd.DataFrame that links file names to concepts, like
@@ -280,7 +269,6 @@ def set_images(source_dir, target_dir, ratios,image_fn, input_str='pet', label_s
     '''
 
     # 1 - gathering information (parsing the source directory)
-    #subject_dirs, pet_list, t1_list, names = gather_dirs(source_dir, input_str, ext )
     subject_dirs, pet_list, names = gather_dirs(source_dir, input_str, ext )
     
     # 2 - checking for potential errors
@@ -304,15 +292,15 @@ def set_images(source_dir, target_dir, ratios,image_fn, input_str='pet', label_s
     out["onehot"] = [ unique_one_hot[i] for i in out.radiotracer ] 
     
     
-    # 5 - attributing a test/train category for all subject
-    out = attribute_category(out, ratios)
-
+    # 5 - attributing a train/validate/test category for all subject
+    attribute_category(out, 'train', ratios[0])
+    attribute_category(out, 'validate', ratios[1])
+    out.category.loc[ out.category=="unknown" ] = "test"
     #5.5 Set the number of valid samples per image (some samples exluded because they contain no information)
     set_valid_samples(out)
 
     # 6 - export and return
-    if not exists(target_dir+os.sep+'report'): makedirs(target_dir+os.sep+'report') 
-    out.to_csv(image_fn, index=False)
+    out.to_csv(images_fn, index=False)
     return out
 
 

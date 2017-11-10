@@ -9,37 +9,18 @@ import argparse
 from make_and_run_model import *
 from predict import *
 from prepare_data import *
-from ntpath import basename
-from os.path import splitext
-from utils import set_model_name
-
-# fix random seed for reproducibility
-np.random.seed(8)
-def generator(f, batch_size):
-    i=0
-    start=i*batch_size
-    end=start + batch_size
-    #while end < tensor_max:
-    while True:
-        start=i*batch_size
-        end=start + batch_size #(i+1)*batch_size 
-        X = f['image'][start:end,]
-        Y = f['label'][start:end,]
-        i+=1
-        yield [X,Y]
-       
+from utils import *
+from custom_loss import *
 
 
 
+def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name='model.hdf5', images_fn='images.csv', onehot_label=None, verbose=1 ):
+    [images, image_dim] = prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn, onehot_label, clobber=clobber)
 
-
-def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name=False, onehot_label=None, verbose=1 ):
-    [images, image_dim] = prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size,feature_dim, clobber)
     ### 1) Define architecture of neural network
     model = make_model(batch_size, image_dim, images)
 
     ### 2) Train network on data
-
     model_name =set_model_name(model_name, target_dir)
     print( 'Model:', model_name)
     if not exists(model_name) or clobber:
@@ -48,10 +29,10 @@ def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, 
         X_train=np.load(prepare_data.train_x_fn+'.npy')
         train_onehot=np.load(prepare_data.train_onehot_fn+'.npy')
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
-        test_onehot=np.load(prepare_data.test_onehot_fn+'.npy')
-        X_test=np.load(prepare_data.test_x_fn+'.npy')
-        Y_test=np.load(prepare_data.test_y_fn+'.npy')
-        model = compile_and_run(model, X_train, train_onehot, Y_train, X_test, test_onehot, Y_test, prepare_data.batch_size, nb_epoch, images)
+        validate_onehot=np.load(prepare_data.validate_onehot_fn+'.npy')
+        X_validate=np.load(prepare_data.validate_x_fn+'.npy')
+        Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
+        model = compile_and_run(model, X_train, train_onehot, Y_train, X_validate, validate_onehot, Y_validate, prepare_data.batch_size, nb_epoch, images)
         model.save(model_name)
 
     ### 3) Produce prediction
@@ -69,8 +50,8 @@ if __name__ == '__main__':
     parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
     parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
-    parser.add_argument('--model', dest='model_name', default=None,  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
-    parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.3],  help='List of ratios for training, testing, and validating (default = 0.7 0.3')
+    parser.add_argument('--model', dest='model_name', default='model.hdf5',  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
+    parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.15,0.15],  help='List of ratios for training, validating, and testing (default = 0.7 0.15 0.15)')
     parser.add_argument('--predict', dest='images_to_predict', type=str, default=None, help='either 1) \'all\' to predict all images OR a comma separated list of index numbers of images on which to perform prediction (by default perform none). example \'1,4,10\' ')
     parser.add_argument('--input-str', dest='input_str', type=str, default='pet', help='String for input (X) images')
     parser.add_argument('--label-str', dest='label_str', type=str, default='brainmask', help='String for label (Y) images')

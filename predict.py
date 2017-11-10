@@ -12,14 +12,14 @@ from keras.models import  load_model
 from prepare_data import * 
 
 
-def save_image(X_test, X_predict, Y_test ,output_fn, slices=None, nslices=25 ):
+def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslices=25 ):
     '''
-        Writes X_test, X_predict, and Y_test to a single png image. Unless specific slices are given, function will write <nslices> evenly spaced slices. 
+        Writes X_validate, X_predict, and Y_validate to a single png image. Unless specific slices are given, function will write <nslices> evenly spaced slices. 
         
         args:
-        X_test -- slice of values input to model
-        X_predict -- slice of predicted values based on X_test
-        Y_test -- slice of predicted values
+        X_validate -- slice of values input to model
+        X_predict -- slice of predicted values based on X_validate
+        Y_validate -- slice of predicted values
         output_fn -- filename of output png file
         slices -- axial slices to save to png file, None by default
         nslices -- number of evenly spaced slices to save to png
@@ -27,7 +27,7 @@ def save_image(X_test, X_predict, Y_test ,output_fn, slices=None, nslices=25 ):
         returns: 0
     '''
     #if no slices are defined by user, set slices to evenly sampled slices along entire number of slices in 3d image volume
-    if slices == None : slices = range(0,  X_test.shape[0], int(X_test.shape[0]/nslices) )
+    if slices == None : slices = range(0,  X_validate.shape[0], int(X_validate.shape[0]/nslices) )
 
     
     #set number of rows and columns in output image. currently, sqrt() means that the image will be a square, but this could be changed if a more vertical orientation is prefered
@@ -51,11 +51,9 @@ def save_image(X_test, X_predict, Y_test ,output_fn, slices=None, nslices=25 ):
             #inner_grid = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer_grid[i], wspace=0.0, hspace=0.0)
             
             #normalize the three input numpy arrays. normalizing them independently is necessary so that they all have the same scale
-            A=normalize(X_test[s])
+            A=normalize(X_validate[s])
             B=normalize(X_predict[s])
-            C=normalize(Y_test[s])
-            print(A.max(), B.max(), C.max())
-            print(A.mean(), B.mean(), C.mean())
+            C=normalize(Y_validate[s])
             ABC = np.concatenate([A,B,C], axis=1)
 
             #use imwshow to display all three images
@@ -93,17 +91,17 @@ def set_output_image_fn(pet_fn, predict_dir, verbose=1):
     
     return image_fn
 
-def predict_image(i, model, X_test_all, Y_test_all, pet_fn, predict_dir,  samples_per_subject, verbose=1):
+def predict_image(i, model, X_validate_all, Y_validate_all, pet_fn, predict_dir,  samples_per_subject, verbose=1):
     '''
-        Slices the input numpy arrays to extract 3d volumes, creates output filename for subject, applies model to X_test and then saves volume to png.
+        Slices the input numpy arrays to extract 3d volumes, creates output filename for subject, applies model to X_validate and then saves volume to png.
 
         args:
             i -- index number of image 
-            X_test_all -- tensor loaded from .npy file with all X_test stored in it
-            Y_test_all -- tensor loaded from .npy file with all Y_test stored in it
+            X_validate_all -- tensor loaded from .npy file with all X_validate stored in it
+            Y_validate_all -- tensor loaded from .npy file with all Y_validate stored in it
             pet_fn -- filename of pet image 
             predict_dir -- base directory for predicted images
-            samples_per_subject -- number of samples in <X_test_all> and <Y_test_all> per subject
+            samples_per_subject -- number of samples in <X_validate_all> and <Y_validate_all> per subject
         
         return:
             image_fn -- filename of png to which slices were saved
@@ -112,29 +110,29 @@ def predict_image(i, model, X_test_all, Y_test_all, pet_fn, predict_dir,  sample
     #get image 3d volume from tensors
     start = i*samples_per_subject
     end = start + samples_per_subject
-    X_test = X_test_all[start:end]
-    Y_test = Y_test_all[start:end]
+    X_validate = X_validate_all[start:end]
+    Y_validate = Y_validate_all[start:end]
     
     #set output filename for png file
     image_fn = set_output_image_fn(pet_fn, predict_dir, verbose)
    
-    #apply model to X_test to get predicted values
-    X_predict = model.predict(X_test, batch_size = prepare_data.batch_size)
+    #apply model to X_validate to get predicted values
+    X_predict = model.predict(X_validate, batch_size = prepare_data.batch_size)
     
     #reshape all 3 numpy arrays to turn them from (zdim, ydim, xdim, 1) --> (zdim, ydim, xdim)
-    X_test = X_test.reshape(X_test.shape[0:3])
+    X_validate = X_validate.reshape(X_validate.shape[0:3])
     X_predict = X_predict.reshape(X_predict.shape[0:3])
-    Y_test = Y_test.reshape(Y_test.shape[0:3])
+    Y_validate = Y_validate.reshape(Y_validate.shape[0:3])
 
     #save slices from 3 numpy arrays to <image_fn>
-    save_image(X_test, X_predict,  Y_test, image_fn)
+    save_image(X_validate, X_predict,  Y_validate, image_fn)
 
     return image_fn
 
 
 def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
     '''
-        Applies model defined in <model_name> to a set of test images and saves results to png image
+        Applies model defined in <model_name> to a set of validate images and saves results to png image
         
         args:
             model_name -- name of model with stored network weights
@@ -145,14 +143,14 @@ def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
             0
 
     '''
-    #create new pandas data frame <test_images> that contains only images marked with category 'test'
+    #create new pandas data frame <validate_images> that contains only images marked with category 'validate'
 
-    test_images = images[ images.category == 'test']
-    test_images.index = range(test_images.shape[0])
-    nImages =test_images.shape[0]
+    validate_images = images[ images.category == 'validate']
+    validate_images.index = range(validate_images.shape[0])
+    nImages =validate_images.shape[0]
     
-    #set which images within test_images will be predicted
-    if images_to_predict == 'all': images_to_predict = range(test_images.shape[0]) 
+    #set which images within validate_images will be predicted
+    if images_to_predict == 'all': images_to_predict = range(validate_images.shape[0]) 
     elif type(images_to_predict) == str : images_to_predict =  [int(i) for i in images_to_predict.split(',')]
     #otherwise run prediction for all images
     else: 
@@ -169,8 +167,8 @@ def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
         exit(0)
    
     #load data for prediction
-    X_test_all = np.load(prepare_data.test_x_fn + '.npy')
-    Y_test_all = np.load(prepare_data.test_y_fn + '.npy')
+    X_validate_all = np.load(prepare_data.validate_x_fn + '.npy')
+    Y_validate_all = np.load(prepare_data.validate_y_fn + '.npy')
     samples_per_subject = prepare_data.samples_per_subject
     if verbose >= 1: print("Data loaded for prediction")
   
@@ -178,8 +176,8 @@ def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
     predict_dir = target_dir + os.sep + 'predict' + os.sep
     
     for i in images_to_predict:
-        pet_fn=test_images.iloc[i,].pet
-        predict_image(i, model, X_test_all, Y_test_all, pet_fn, predict_dir,  samples_per_subject, verbose)
+        pet_fn=validate_images.iloc[i,].pet
+        predict_image(i, model, X_validate_all, Y_validate_all, pet_fn, predict_dir,  samples_per_subject, verbose)
 
 
     if verbose >= 1:  print("Prediction completed")
