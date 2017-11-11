@@ -29,7 +29,6 @@ def gather_dirs(source_dir, input_str='acq', ext='mnc'):
     subject_dirs = glob(source_dir + os.sep + '*', recursive=True)
     pet_list = glob(source_dir + os.sep + '**' + os.sep + '*'+input_str+'.'+ext, recursive=True)
     if len(pet_list) == 0 : print('Warning: could not find input file of form:', source_dir + os.sep + '**' + os.sep + '*_'+input_str+'.'+ext)
-    #t1_list = glob(source_dir + os.sep + '**' + os.sep + "*_T1w" + '.' +ext, recursive=True)
     names = [basename(f) for f in subject_dirs]
     #return(subject_dirs, pet_list, t1_list, names)
     return(subject_dirs, pet_list, names)
@@ -140,9 +139,7 @@ def process(name, source_dir, pet_list,  label_str='brainmask', ext='mnc' ):
 
     label_str = os.path.splitext(label_str)[0]
     if len(task_names) == 0:
-        #label = glob(source_dir + os.sep + name +  os.sep + '*_labels_'+label_str+'.'+ext)
         label = glob(source_dir + os.sep + '**' +  os.sep + '*'+label_str+'.'+ext, recursive=True)
-        #data_subject = createdf(name, pet_names,  pet, t1, label, task=False)
         data_subject = createdf(name, pet_names,  pet, label, task=False)
 
     else :

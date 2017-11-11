@@ -21,7 +21,9 @@ def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, 
     model = make_model(batch_size, image_dim, images)
 
     ### 2) Train network on data
-    model_name =set_model_name(model_name, target_dir)
+
+    model_dir=target_dir+os.sep+'model'
+    model_name =set_model_name(model_name, model_dir)
     print( 'Model:', model_name)
     if not exists(model_name) or clobber:
     #If model_name does not exist, or user wishes to write over (clobber) existing model

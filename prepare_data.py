@@ -6,7 +6,6 @@ import h5py
 import os
 from re import sub
 from sys import argv, exit
-from glob import glob
 from os.path import basename, exists, splitext
 from os import makedirs
 from set_images import *
@@ -86,10 +85,8 @@ def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_siz
     ### 0) Setup file names and output directories
     data_dir = target_dir + os.sep + 'data' + os.sep
     report_dir = target_dir+os.sep+'report'
-    model_dir=target_dir+os.sep+'model'
     if not exists(data_dir): makedirs(data_dir)
     if not exists(report_dir): makedirs(report_dir) 
-    if not exists(model_dir): makedirs(model_dir)
 
     prepare_data.train_x_fn = data_dir + os.sep + 'train_x'
     prepare_data.train_onehot_fn = data_dir + os.sep + 'train_onehot'
