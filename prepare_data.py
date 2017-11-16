@@ -24,12 +24,12 @@ def adjust_batch_size(n1, n2, batch_size):
     else: return batch_size
 
 
-def feature_extraction(images,image_dim, x_output_file, y_output_file,target_dir, clobber):
+def feature_extraction(images,image_dim, x_output_file, y_output_file,data_dir, clobber):
     nSubjects= images.shape[0] #total number f subjects
     total_valid_slices = images.valid_samples.values.sum()
     #Set up the number of valid slices for each subject
 
-    f = h5py.File(target_dir+os.sep+'temp.hdf5', "w")
+    f = h5py.File(data_dir+os.sep+'temp.hdf5', "w")
     X_f = f.create_dataset("image", [total_valid_slices,image_dim[1],image_dim[2],1], dtype='float16')
     Y_f = f.create_dataset("label", [total_valid_slices,image_dim[1],image_dim[2],1], dtype='float16')
     total_index=0
@@ -81,28 +81,26 @@ def get_image_dim(fn):
     return image_dim
 
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named validate- and train-
-def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_size, feature_dim=2, images_fn='images.csv', onehot_label=None, clobber=False):
+def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size, feature_dim=2, images_fn='images.csv', onehot_label=None, clobber=False):
     ### 0) Setup file names and output directories
-    data_dir = target_dir + os.sep + 'data' + os.sep
-    report_dir = target_dir+os.sep+'report'
-    if not exists(data_dir): makedirs(data_dir)
-    if not exists(report_dir): makedirs(report_dir) 
-
     prepare_data.train_x_fn = data_dir + os.sep + 'train_x'
     prepare_data.train_onehot_fn = data_dir + os.sep + 'train_onehot'
     prepare_data.train_y_fn = data_dir + os.sep + 'train_y'
     prepare_data.validate_x_fn = data_dir + os.sep + 'validate_x'
     prepare_data.validate_onehot_fn = data_dir + os.sep + 'validate_onehot'
     prepare_data.validate_y_fn = data_dir + os.sep + 'validate_y'
-
-
+    prepare_data.test_x_fn = data_dir + os.sep + 'test_x'
+    prepare_data.test_onehot_fn = data_dir + os.sep + 'test_onehot'
+    prepare_data.test_y_fn = data_dir + os.sep + 'test_y'
     ### 1) Organize inputs into a data frame, match each PET image with label image
     images_fn = set_model_name(images_fn, report_dir, '.csv')
-    if not exists(images_fn) or clobber: images = set_images(source_dir, target_dir, ratios,images_fn, input_str, label_str )
+    if not exists(images_fn) or clobber: 
+        images = set_images(source_dir, ratios,images_fn, input_str, label_str )
     else: images = pd.read_csv(images_fn)
     ## 1.5) Split images into training and validate data frames
     train_images = images[images['category']=='train'].reset_index()
     validate_images = images[images['category']=='validate'].reset_index()
+    test_images = images[images['category']=='test'].reset_index()
     train_valid_samples = train_images.valid_samples.values.sum()  
     validate_valid_samples  =  validate_images.valid_samples.values.sum()
 
@@ -113,14 +111,16 @@ def prepare_data(source_dir, target_dir, input_str, label_str, ratios, batch_siz
 
 
     if not exists(prepare_data.train_x_fn + '.npy') or not exists(prepare_data.train_y_fn + '.npy') or clobber:
-        feature_extraction(train_images, image_dim, prepare_data.train_x_fn, prepare_data.train_y_fn, target_dir, clobber)
+        feature_extraction(train_images, image_dim, prepare_data.train_x_fn, prepare_data.train_y_fn, data_dir, clobber)
     if not exists(prepare_data.validate_x_fn + '.npy') or not exists(prepare_data.validate_y_fn + '.npy') or clobber:
-        feature_extraction(validate_images, image_dim, prepare_data.validate_x_fn, prepare_data.validate_y_fn, target_dir, clobber)
-
+        feature_extraction(validate_images, image_dim, prepare_data.validate_x_fn, prepare_data.validate_y_fn, data_dir, clobber)
+    if not exists(prepare_data.test_x_fn + '.npy') or not exists(prepare_data.test_y_fn + '.npy') or clobber:
+        feature_extraction(validate_images, image_dim, prepare_data.validate_x_fn, prepare_data.validate_y_fn, data_dir, clobber)
     prepare_data.batch_size = adjust_batch_size(train_valid_samples, validate_valid_samples, batch_size)
     if not exists(prepare_data.train_onehot_fn) or clobber: 
         set_onehot(train_images, prepare_data.train_onehot_fn)
     if not exists(prepare_data.validate_onehot_fn) or clobber: 
         set_onehot(validate_images, prepare_data.validate_onehot_fn)
-
+    if not exists(prepare_data.test_onehot_fn) or clobber: 
+        set_onehot(test_images, prepare_data.test_onehot_fn)
     return [ images, image_dim ] 

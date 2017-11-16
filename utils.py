@@ -2,7 +2,7 @@ import os
 import h5py
 import numpy as np
 from os.path import splitext, basename, exists
-
+from keras import backend as K
 def set_model_name(filename, target_dir, ext='.hdf5'):
     '''function to set default model name'''
     return  target_dir+os.sep+splitext(basename(filename))[0]+ext
@@ -34,21 +34,49 @@ def normalize(A):
 
     return (A - np.min(A))/scale_factor
 
+def dice_coef(y_true, y_pred):
+    y_true_f = np.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
 
+def dice_coef_loss(y_true, y_pred):
+    return -dice_coef(y_true, y_pred)
 
-'''# fix random seed for reproducibility
-np.random.seed(8)
-def generator(f, batch_size):
-    i=0
-    start=i*batch_size
-    end=start + batch_size
-    #while end < tensor_max:
-    while True:
-        start=i*batch_size
-        end=start + batch_size #(i+1)*batch_size 
-        X = f['image'][start:end,]
-        Y = f['label'][start:end,]
-        i+=1
-        yield [X,Y]
-       '''
+def dice_loss(y_true, y_pred):
+    """
+    Computes approximate DICE coefficient as a loss by using the negative, computed with the Keras backend. The overlap\
+    and total are offset to prevent 0/0, and the values are not rounded in order to keep the gradient information.
+    Args:
+    :arg y_true: Ground truth
+    :arg y_pred: Predicted value for some input
+    Returns
+    :return: Approximate DICE coefficient.
+    """
+    ytf = K.flatten(y_true)
+    ypf = K.flatten(y_pred)
+
+    overlap = K.sum(ytf*ypf)
+    total = K.sum(ytf*ytf) + K.sum(ypf * ypf)
+    return -(2*overlap +1e-10) / (total + 1e-10)
+
+
+def dice_metric(y_true, y_pred):
+    """
+    Computes DICE coefficient, computed with the Keras backend.
+    Args:
+    :arg y_true: Ground truth
+    :arg y_pred: Predicted value for some input
+    Returns
+    :return: DICE coefficient
+    """
+    ytf = K.round(K.flatten(y_true))
+    ypf = K.round(K.flatten(y_pred))
+
+    overlap = 2*K.sum(ytf*ypf)
+    total = K.sum(ytf*ytf) + K.sum(ypf * ypf)
+
+    return overlap / total
+
+

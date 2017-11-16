@@ -246,7 +246,7 @@ def set_valid_samples(images):
         total_slices += valid_slices
     return(total_slices)
 
-def set_images(source_dir, target_dir, ratios, images_fn, input_str='pet', label_str='brainmask', ext='mnc' ):
+def set_images(source_dir, ratios, images_fn, input_str='pet', label_str='brainmask', ext='mnc' ):
     ''' This function takes a source directory, where the data is, and a
         ratio list (split test/train).
         It returns a pd.DataFrame that links file names to concepts, like
@@ -255,7 +255,6 @@ def set_images(source_dir, target_dir, ratios, images_fn, input_str='pet', label
 
         Args:
             source_dir (str): the directory where the data is
-            target_dir (str): the directory where the results will go
             input_str  (str): string used to identify input files
             label_str  (str): string used to identify label files
             ext (str) : string the identifies extension of file (default==nifti)
@@ -271,7 +270,7 @@ def set_images(source_dir, target_dir, ratios, images_fn, input_str='pet', label
     # 2 - checking for potential errors
     if len(names) == 0:
         print_error_nosubject(source_dir)
-    if sum(ratios) != 1:
+    if sum(ratios) != 1.:
         print_error_nosumone(ratios)
 
     # 3 - creating an empty directory of dataframes, then filling it.

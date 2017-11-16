@@ -10,6 +10,10 @@ import matplotlib.gridspec as gridspec
 from re import sub
 from keras.models import  load_model
 from prepare_data import * 
+from utils import *
+import json
+from keras.utils.generic_utils import get_custom_objects
+get_custom_objects().update({"dice_loss": dice_loss})
 
 
 def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslices=25 ):
@@ -28,44 +32,45 @@ def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslice
     '''
     #if no slices are defined by user, set slices to evenly sampled slices along entire number of slices in 3d image volume
     if slices == None : slices = range(0,  X_validate.shape[0], int(X_validate.shape[0]/nslices) )
-
     
     #set number of rows and columns in output image. currently, sqrt() means that the image will be a square, but this could be changed if a more vertical orientation is prefered
     ncol=int(np.sqrt(nslices))
     nrow=ncol
-    
     fig = plt.figure(1 )
 
     #using gridspec because it seems to give a bit more control over the spacing of the images. define a nrow x ncol grid
-    outer_grid = gridspec.GridSpec(nrow, ncol,wspace=0.0, hspace=0.0 )
+    #outer_grid = gridspec.GridSpec(nrow, ncol,wspace=0.0, hspace=0.0)
     
+
     slice_index=0 #index value for <slices>
     #iterate over columns and rows:
     for col in range(ncol):
         for row in range(nrow) :
             s=slices[slice_index]
-            i=col*nrow+row 
-            
-            #couldn't get inner grid to work properly, so commented out for now. 
-            #in theory, should be able to get rid of all white spacing with it
-            #inner_grid = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer_grid[i], wspace=0.0, hspace=0.0)
+            i=col*nrow+row+1
             
             #normalize the three input numpy arrays. normalizing them independently is necessary so that they all have the same scale
             A=normalize(X_validate[s])
-            B=normalize(X_predict[s])
-            C=normalize(Y_validate[s])
+            B=normalize(Y_validate[s])
+            C=normalize(X_predict[s])
             ABC = np.concatenate([A,B,C], axis=1)
 
             #use imwshow to display all three images
-            plt.subplot(outer_grid[i] )
+            ax1=plt.subplot(ncol, nrow, i)
             plt.imshow(ABC)
             plt.axis('off')
-            plt.subplots_adjust(hspace=0.0, wspace=0.0)
             
             slice_index+=1
-
-    outer_grid.tight_layout(fig,  pad=0, h_pad=0, w_pad=0 ) 
-    plt.savefig(output_fn, dpi=750)  
+            del A
+            del B
+            del C
+            del ABC
+    
+    plt.tight_layout( )
+    plt.subplots_adjust(  wspace=0.01, hspace=0.1)
+    #outer_grid.tight_layout(fig, pad=0, h_pad=0, w_pad=0) 
+    plt.savefig(output_fn, dpi=2000, width=4000)  
+    plt.clf()
     return 0
 
 
@@ -91,46 +96,46 @@ def set_output_image_fn(pet_fn, predict_dir, verbose=1):
     
     return image_fn
 
-def predict_image(i, model, X_validate_all, Y_validate_all, pet_fn, predict_dir,  samples_per_subject, verbose=1):
+def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, verbose=1):
     '''
         Slices the input numpy arrays to extract 3d volumes, creates output filename for subject, applies model to X_validate and then saves volume to png.
 
         args:
             i -- index number of image 
-            X_validate_all -- tensor loaded from .npy file with all X_validate stored in it
-            Y_validate_all -- tensor loaded from .npy file with all Y_validate stored in it
+            X_all -- tensor loaded from .npy file with all X_validate stored in it
+            Y_all -- tensor loaded from .npy file with all Y_validate stored in it
             pet_fn -- filename of pet image 
             predict_dir -- base directory for predicted images
-            samples_per_subject -- number of samples in <X_validate_all> and <Y_validate_all> per subject
+            samples_per_subject -- number of samples in <X_all> and <Y_all> per subject
         
         return:
             image_fn -- filename of png to which slices were saved
     
     '''
     #get image 3d volume from tensors
-    start = i*samples_per_subject
-    end = start + samples_per_subject
-    X_validate = X_validate_all[start:end]
-    Y_validate = Y_validate_all[start:end]
-    
+    X_validate = X_all[start:end]
+    Y_validate = Y_all[start:end]
+
     #set output filename for png file
     image_fn = set_output_image_fn(pet_fn, predict_dir, verbose)
    
     #apply model to X_validate to get predicted values
     X_predict = model.predict(X_validate, batch_size = prepare_data.batch_size)
-    
+    if type(X_predict) != type(np.array([])) : return 1
     #reshape all 3 numpy arrays to turn them from (zdim, ydim, xdim, 1) --> (zdim, ydim, xdim)
     X_validate = X_validate.reshape(X_validate.shape[0:3])
-    X_predict = X_predict.reshape(X_predict.shape[0:3])
+    X_predict  = X_predict.reshape(X_predict.shape[0:3])
     Y_validate = Y_validate.reshape(Y_validate.shape[0:3])
 
     #save slices from 3 numpy arrays to <image_fn>
     save_image(X_validate, X_predict,  Y_validate, image_fn)
-
+    del Y_validate
+    del X_validate
+    del X_predict
     return image_fn
 
 
-def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
+def predict(model_name, predict_dir,images_fn,category='test', images_to_predict=None, verbose=1 ):
     '''
         Applies model defined in <model_name> to a set of validate images and saves results to png image
         
@@ -143,21 +148,22 @@ def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
             0
 
     '''
-    #create new pandas data frame <validate_images> that contains only images marked with category 'validate'
+    images = pd.read_csv(images_fn)
+    #create new pandas data frame <images> that contains only images marked with category 'validate'
 
-    validate_images = images[ images.category == 'validate']
-    validate_images.index = range(validate_images.shape[0])
-    nImages =validate_images.shape[0]
+    images = images[ images.category == category]
+    images.index = range(images.shape[0])
+    nImages =images.shape[0]
     
-    #set which images within validate_images will be predicted
-    if images_to_predict == 'all': images_to_predict = range(validate_images.shape[0]) 
+    print(images_to_predict)
+    #set which images within images will be predicted
+    if images_to_predict == 'all': images_to_predict = range(images.shape[0]) 
     elif type(images_to_predict) == str : images_to_predict =  [int(i) for i in images_to_predict.split(',')]
     #otherwise run prediction for all images
     else: 
         print('No images were specified for prediction.')
         return 0
     
-
     #check that the model exists and load it
     if exists(model_name) :
         model = load_model(model_name)
@@ -167,18 +173,37 @@ def predict(model_name, target_dir,images, images_to_predict=None, verbose=1 ):
         exit(0)
    
     #load data for prediction
-    X_validate_all = np.load(prepare_data.validate_x_fn + '.npy')
-    Y_validate_all = np.load(prepare_data.validate_y_fn + '.npy')
-    samples_per_subject = prepare_data.samples_per_subject
+    X_all = np.load(prepare_data.x_fn + '.npy')
+    Y_all = np.load(prepare_data.y_fn + '.npy')
     if verbose >= 1: print("Data loaded for prediction")
-  
-
-    predict_dir = target_dir + os.sep + 'predict' + os.sep
-    
+   
+    print(images)
     for i in images_to_predict:
-        pet_fn=validate_images.iloc[i,].pet
-        predict_image(i, model, X_validate_all, Y_validate_all, pet_fn, predict_dir,  samples_per_subject, verbose)
+        if i==0 : start_sample = 0
+        else :    start_sample = int(images.iloc[0:i,].valid_samples.sum())
+        end_sample = int(images.iloc[0:(i+1),].valid_samples.sum())
+
+        pet_fn=images.iloc[i,].pet
+        samples_per_subject = images.iloc[i,].valid_samples
+        print(images.iloc[i,].pet)
+        predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start_sample, end_sample, verbose)
 
 
     if verbose >= 1:  print("Prediction completed")
     return 0
+
+
+
+if __name__ == '__main__':
+    
+    parser.add_argument('--model', dest='model_fn', type=str,  help='model to use for prediction')
+    parser.add_argument('--target', dest='predict_fn', type=str,  help='directory to save predicted images')
+    parser.add_argument('--images', dest='images_fn', type=str,  help='filename with images .csv with information about files')
+    parser.add_argument('--category', dest='category', type=str, default='test', help='Image cagetogry: train/validation/test')
+    parser.add_argument('--images_to_predict', dest='images_to_predict', type=str, default='all', help='either 1) \'all\' to predict all images OR a comma separated list of index numbers of images on which to perform prediction (by default perform none). example \'1,4,10\'' )
+    parser = argparse.ArgumentParser(description='Process inputs for predict.')
+
+    args = parser.parse_args()
+
+    predict(model_fn=args.model_fn, predict_dir=args.predict_dir, images_fn=args.images_fn, category=args.category, images_to_predict=None, verbose=1 )
+
