@@ -27,12 +27,14 @@ def normalize(A):
     returns
         numpy array (either A or normalized version of A)
     '''
-    A = (A - np.mean(A)) / np.std(A)
+    std_factor=1
+    if np.std(A) > 0 : std_factor=np.std(A)
+    A = (A - np.mean(A)) / std_factor
 
-    scale_factor=(np.max(A)-np.min(A))
-    if scale_factor==0: return A
-
-    return (A - np.min(A))/scale_factor
+    scale_factor=np.max(A) - A.min()
+    if  scale_factor == 0: scale_factor = 1
+    A = (A - A.min()) /scale_factor
+    return A
 
 def dice_coef(y_true, y_pred):
     y_true_f = np.flatten(y_true)

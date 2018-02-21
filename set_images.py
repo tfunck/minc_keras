@@ -235,6 +235,8 @@ def set_valid_samples(images):
     for index, row in images.iterrows():
         minc_pet_f = safe_h5py_open(row.pet, 'r')
         pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image'])
+
+        pet = normalize(pet)
         if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
 
         images['total_samples'].iloc[index] = pet.shape[0]
@@ -283,9 +285,9 @@ def set_images(source_dir, ratios, images_fn, input_str='pet', label_str='brainm
     out = create_out(dfd)
 
     ## 4.5) create one hot label for pet images
-    unique_radiotracers = dict( enumerate( out.radiotracer.unique() ) )
-    unique_one_hot =  dict([ (item, key) for key, item in unique_radiotracers.items() ]) 
-    out["onehot"] = [ unique_one_hot[i] for i in out.radiotracer ] 
+    #unique_radiotracers = dict( enumerate( out.radiotracer.unique() ) )
+    #unique_one_hot =  dict([ (item, key) for key, item in unique_radiotracers.items() ]) 
+    #out["onehot"] = [ unique_one_hot[i] for i in out.radiotracer ] 
     
     
     # 5 - attributing a train/validate/test category for all subject

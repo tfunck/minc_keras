@@ -15,16 +15,21 @@ from plot_metrics import *
 
 
 
-def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5', images_fn='images.csv', onehot_label=None, verbose=1 ):
+def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5', images_fn='images.csv',  verbose=1 ):
 
-    data_dir = target_dir + os.sep + 'data'
-    report_dir = target_dir+os.sep+'report'
-    predict_dir = target_dir+os.sep+'predict'
-    if not exists(predict_dir): makedirs(predict_dir)
+    data_dir = target_dir + os.sep + 'data'+os.sep
+    report_dir = target_dir+os.sep+'report'+os.sep
+    train_dir = target_dir+os.sep+'predict'+os.sep+'train'+os.sep
+    test_dir = target_dir+os.sep+'predict'+os.sep+'test'+os.sep
+    validate_dir = target_dir+os.sep+'predict'+os.sep+'validate'+os.sep
+    if not exists(train_dir): makedirs(train_dir)
+    if not exists(test_dir): makedirs(test_dir)
+    if not exists(validate_dir): makedirs(validate_dir)
     if not exists(data_dir): makedirs(data_dir)
     if not exists(report_dir): makedirs(report_dir) 
 
-    [images, image_dim] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn, onehot_label, clobber=clobber)
+    images_fn = set_model_name(images_fn, report_dir, '.csv')
+    [images, image_dim] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
 
     ### 1) Define architecture of neural network
     model = make_model(batch_size, image_dim, images)
@@ -40,12 +45,10 @@ def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, 
     #If model_fn does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
         X_train=np.load(prepare_data.train_x_fn+'.npy')
-        train_onehot=np.load(prepare_data.train_onehot_fn+'.npy')
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
-        validate_onehot=np.load(prepare_data.validate_onehot_fn+'.npy')
         X_validate=np.load(prepare_data.validate_x_fn+'.npy')
         Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
-        model,history = compile_and_run(model, model_fn, history_fn, X_train, train_onehot, Y_train, X_validate, validate_onehot, Y_validate, prepare_data.batch_size, nb_epoch, images)
+        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, prepare_data.batch_size, nb_epoch, images)
 
     ### 3) Evaluate model on test data
     model = load_model(model_fn)
@@ -56,7 +59,9 @@ def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, 
     np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
 
     ### 4) Produce prediction
-    predict(model_fn, predict_dir, images, images_to_predict, verbose)
+    #predict(model_fn, validate_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="validate", verbose=verbose)
+    #predict(model_fn, train_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="train", verbose=verbose)
+    predict(model_fn, test_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="test", verbose=verbose)
     plot_loss(history_fn, model_fn, report_dir)
 
     return 0
@@ -82,4 +87,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    pet_brainmask_convnet(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,images_to_predict= args.images_to_predict, onehot_label=args.onehot_label, verbose=args.verbose)
+    pet_brainmask_convnet(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,images_to_predict= args.images_to_predict, verbose=args.verbose)

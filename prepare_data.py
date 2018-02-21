@@ -37,15 +37,15 @@ def feature_extraction(images,image_dim, x_output_file, y_output_file,data_dir, 
         if index % 10 == 0: print("Saving",images["category"][0],"images:",index, '/', images.shape[0] , end='\r') 
         minc_pet_f = safe_h5py_open(row.pet, 'r')
         minc_label_f = safe_h5py_open(row.label, 'r')
-        pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.pet).data
+        pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) 
 
         #sum the pet image if it is a 4d volume
         if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
-        label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) #volumeFromFile(row.label).data
-        pet = normalize(pet) # (pet - pet.min())/(pet.max() - pet.min())
+        label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) 
+        pet = normalize(pet)
         pet=pet.reshape(list(pet.shape)+[1])
 
-        label = normalize(label) #(label - label.min())/(label.max() - label.min())
+        label = normalize(label) 
         label=label.reshape(list(label.shape)+[1])
         for j in range(row.total_samples):
             if pet[j].sum() != 0 : 
@@ -53,8 +53,8 @@ def feature_extraction(images,image_dim, x_output_file, y_output_file,data_dir, 
                 f['label'][(total_index)] = label[j]
                 total_index += 1
 
-    clean_X = f['image']#[not_index_bad_X]
-    clean_Y = f['label']#[not_index_bad_X]
+    clean_X = f['image']
+    clean_Y = f['label']
     np.save(x_output_file,clean_X)
     np.save(y_output_file,clean_Y)
     f.close()
@@ -81,22 +81,22 @@ def get_image_dim(fn):
     return image_dim
 
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named validate- and train-
-def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size, feature_dim=2, images_fn='images.csv', onehot_label=None, clobber=False):
+def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size, feature_dim=2, images_fn='images.csv',  clobber=False):
     ### 0) Setup file names and output directories
     prepare_data.train_x_fn = data_dir + os.sep + 'train_x'
-    prepare_data.train_onehot_fn = data_dir + os.sep + 'train_onehot'
+    #prepare_data.train_onehot_fn = data_dir + os.sep + 'train_onehot'
     prepare_data.train_y_fn = data_dir + os.sep + 'train_y'
     prepare_data.validate_x_fn = data_dir + os.sep + 'validate_x'
-    prepare_data.validate_onehot_fn = data_dir + os.sep + 'validate_onehot'
+    #prepare_data.validate_onehot_fn = data_dir + os.sep + 'validate_onehot'
     prepare_data.validate_y_fn = data_dir + os.sep + 'validate_y'
     prepare_data.test_x_fn = data_dir + os.sep + 'test_x'
-    prepare_data.test_onehot_fn = data_dir + os.sep + 'test_onehot'
+    #prepare_data.test_onehot_fn = data_dir + os.sep + 'test_onehot'
     prepare_data.test_y_fn = data_dir + os.sep + 'test_y'
     ### 1) Organize inputs into a data frame, match each PET image with label image
-    images_fn = set_model_name(images_fn, report_dir, '.csv')
     if not exists(images_fn) or clobber: 
         images = set_images(source_dir, ratios,images_fn, input_str, label_str )
-    else: images = pd.read_csv(images_fn)
+    else: 
+        images = pd.read_csv(images_fn)
     ## 1.5) Split images into training and validate data frames
     train_images = images[images['category']=='train'].reset_index()
     validate_images = images[images['category']=='validate'].reset_index()
@@ -108,19 +108,11 @@ def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios,
     image_dim = get_image_dim(images.iloc[0].label)
 
     ### 3) Set up dimensions of data tensors to be used for training and validateing. all of the
-
-
     if not exists(prepare_data.train_x_fn + '.npy') or not exists(prepare_data.train_y_fn + '.npy') or clobber:
         feature_extraction(train_images, image_dim, prepare_data.train_x_fn, prepare_data.train_y_fn, data_dir, clobber)
     if not exists(prepare_data.validate_x_fn + '.npy') or not exists(prepare_data.validate_y_fn + '.npy') or clobber:
         feature_extraction(validate_images, image_dim, prepare_data.validate_x_fn, prepare_data.validate_y_fn, data_dir, clobber)
     if not exists(prepare_data.test_x_fn + '.npy') or not exists(prepare_data.test_y_fn + '.npy') or clobber:
-        feature_extraction(validate_images, image_dim, prepare_data.validate_x_fn, prepare_data.validate_y_fn, data_dir, clobber)
+        feature_extraction(validate_images, image_dim, prepare_data.test_x_fn, prepare_data.test_y_fn, data_dir, clobber)
     prepare_data.batch_size = adjust_batch_size(train_valid_samples, validate_valid_samples, batch_size)
-    if not exists(prepare_data.train_onehot_fn) or clobber: 
-        set_onehot(train_images, prepare_data.train_onehot_fn)
-    if not exists(prepare_data.validate_onehot_fn) or clobber: 
-        set_onehot(validate_images, prepare_data.validate_onehot_fn)
-    if not exists(prepare_data.test_onehot_fn) or clobber: 
-        set_onehot(test_images, prepare_data.test_onehot_fn)
     return [ images, image_dim ] 
