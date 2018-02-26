@@ -21,7 +21,7 @@ def make_unet(batch_size, image_dim, images):
     nMLP=16
     nRshp=int(sqrt(nMLP))
     nUpSm=int(image_dim[0]/nRshp)
-    image = Input(shape=(image_dim[0], image_dim[1],1))
+    image = Input(shape=(image_dim[1], image_dim[2],1))
     
     BN1 = BatchNormalization()(image)
 
@@ -73,7 +73,7 @@ def make_unet(batch_size, image_dim, images):
 
 def make_dil(batch_size, image_dim, images):
     
-    image = Input(shape=(image_dim[0], image_dim[1],1))
+    image = Input(shape=(image_dim[1], image_dim[2],1))
 
     OUT = BatchNormalization()(image)
     #kDim=[3,3,3,3,3,3,3]

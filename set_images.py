@@ -27,8 +27,11 @@ def gather_dirs(source_dir, input_str='acq', ext='mnc'):
     '''
     input_str = os.path.splitext(input_str)[0]
     subject_dirs = glob(source_dir + os.sep + '*', recursive=True)
-    pet_list = glob(source_dir + os.sep + '**' + os.sep + '*'+input_str+'.'+ext, recursive=True)
-    if len(pet_list) == 0 : print('Warning: could not find input file of form:', source_dir + os.sep + '**' + os.sep + '*_'+input_str+'.'+ext)
+    pet_list = glob(source_dir + os.sep + '**' + os.sep + '*'+input_str+'*.'+ext, recursive=True)
+    if pet_list == [] :
+        print("Error -- could not find any files for :")
+        print(source_dir + os.sep + '**' + os.sep + '*'+input_str+'.'+ext)
+        exit(1)
     names = [basename(f) for f in subject_dirs]
     #return(subject_dirs, pet_list, t1_list, names)
     return(subject_dirs, pet_list, names)
@@ -145,7 +148,7 @@ def process(name, source_dir, pet_list,  label_str='brainmask', ext='mnc' ):
     else :
         labels = []
         for p, t in zip(pet, task_names):
-            label_fn = glob(source_dir + os.sep + '**' + os.sep + name + '*' + t + '*'+label_str+'.'+ext, recursive=True)
+            label_fn = glob(source_dir + os.sep + '**' + os.sep + name + '*' + t + '*'+label_str+'*.'+ext, recursive=True)
             if not label_fn == []: label_fn = label_fn[0]
             else: 
                 print('Warning: could not find label for ', name, 'with the form:')
@@ -182,7 +185,7 @@ def create_out(dfd):
     out.reset_index(inplace=True, drop=True)
     return(out)
 
-def attribute_category(out, category, ratio,  verbose=1):
+def attribute_category(out, category, category_class,ratio,  verbose=1):
     ''' This function distributes each subject in a 'train' or 'test' category. The 'train' and 'test' 
         categories are assigned so as to make sure that all of the different radiotracers are contained 
         within the 'train' category.
@@ -200,14 +203,17 @@ def attribute_category(out, category, ratio,  verbose=1):
             The value of test or train is the same for a given subject.
     '''
     nImages=out.shape[0]
+    print(nImages, ratio)
     n = int(round(nImages * ratio))
     i=0
 
-    radiotracers = pd.Series(out.radiotracer)
-    unique_radiotracers = np.unique(radiotracers)
+
+    category_classes = pd.Series(out[category_class])
+    unique_category_classes = np.unique(category_classes)
+
     while True : 
-        for r in unique_radiotracers :
-            unknown_df = out[ (out.category == "unknown") & (radiotracers == r) ]
+        for r in unique_category_classes :
+            unknown_df = out[ (out.category == "unknown") & (category_classes == r) ]
             n_unknown = unknown_df.shape[0]
             if n_unknown == 0: continue
             random_i = np.random.randint(0,n_unknown)
@@ -216,7 +222,7 @@ def attribute_category(out, category, ratio,  verbose=1):
             i +=  out.loc[ out.index[out.subject == row.subject ], 'category'  ].shape[0]
             if i >= n : break
 
-        n_unknown = out[ (out.category == "unknown") & (radiotracers == r) ].shape[0]
+        n_unknown = out[ (out.category == "unknown") & (category_classes == r) ].shape[0]
         if i >= n or n_unknown == 0  : break
     
     if verbose > 0 : 
@@ -268,12 +274,13 @@ def set_images(source_dir, ratios, images_fn, input_str='pet', label_str='brainm
 
     # 1 - gathering information (parsing the source directory)
     subject_dirs, pet_list, names = gather_dirs(source_dir, input_str, ext )
-    
+
     # 2 - checking for potential errors
     if len(names) == 0:
         print_error_nosubject(source_dir)
     if sum(ratios) != 1.:
         print_error_nosumone(ratios)
+    
 
     # 3 - creating an empty directory of dataframes, then filling it.
     dfd = {}
@@ -283,16 +290,13 @@ def set_images(source_dir, ratios, images_fn, input_str='pet', label_str='brainm
         if not data_subject == 1: dfd[name] = pd.DataFrame(data_subject)  # formerly subject_df
     # 4 - concatenation of the dict of df to a single df
     out = create_out(dfd)
-
-    ## 4.5) create one hot label for pet images
-    #unique_radiotracers = dict( enumerate( out.radiotracer.unique() ) )
-    #unique_one_hot =  dict([ (item, key) for key, item in unique_radiotracers.items() ]) 
-    #out["onehot"] = [ unique_one_hot[i] for i in out.radiotracer ] 
-    
     
     # 5 - attributing a train/validate/test category for all subject
-    attribute_category(out, 'train', ratios[0])
-    attribute_category(out, 'validate', ratios[1])
+    if "radiotracer" in out.columns : category_class="radiotracer" 
+    else : category_class="task" 
+
+    attribute_category(out, 'train',category_class, ratios[0])
+    attribute_category(out, 'validate',category_class, ratios[1])
     out.category.loc[ out.category=="unknown" ] = "test"
     #5.5 Set the number of valid samples per image (some samples exluded because they contain no information)
     set_valid_samples(out)
