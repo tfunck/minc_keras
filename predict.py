@@ -15,7 +15,7 @@ from utils import *
 import json
 import argparse
 from keras.utils.generic_utils import get_custom_objects
-get_custom_objects().update({"dice_loss": dice_loss})
+get_custom_objects().update({"dice_metric": dice_metric})
 
 
 def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslices=25 ):

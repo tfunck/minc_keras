@@ -127,7 +127,7 @@ def make_model(batch_size, image_dim, images):
 
 def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate, batch_size, nb_epoch, lr=0.005):
     #set checkpoint filename
-    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_dice_loss:.2f}.hdf5"
+    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_dice_metric:.2f}.hdf5"
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
     #create history callback
@@ -135,9 +135,9 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
     #create csv logger callback
     #csv_logger = CSVLogger(splitext(model_name)[0]+ 'training.txt')
     #create checkpoint callback for model
-    checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_dice_loss', verbose=0, save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_dice_metric', verbose=0, save_best_only=True, mode='max')
     #compile the model
-    model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=[dice_loss] )
+    model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=[dice_metric] )
     #fit model
     history = model.fit([X_train],Y_train, batch_size, validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   

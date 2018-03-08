@@ -15,7 +15,7 @@ from plot_metrics import *
 
 
 
-def pet_brainmask_convnet(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5', images_fn='images.csv',  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5', images_fn='images.csv',  verbose=1 ):
 
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
@@ -88,4 +88,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    pet_brainmask_convnet(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,images_to_predict= args.images_to_predict, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,images_to_predict= args.images_to_predict, verbose=args.verbose)
