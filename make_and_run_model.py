@@ -92,12 +92,33 @@ def make_dil(batch_size, image_dim, images):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
+def make_simple(batch_size, image_dim, images):
+    
+    image = Input(shape=(image_dim[1], image_dim[2],1))
+
+    OUT = BatchNormalization()(image)
+    nK=[16,16,16,32,32,32,64,64,64,64]
+    n_layers=int(len(nK))
+    kDim=[5] * n_layers
+    for i in range(n_layers):
+        OUT = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation='relu',padding='same')(OUT)
+        #OUT = BatchNormalization()(OUT)
+        OUT = Dropout(0.25)(OUT)
+
+    OUT = Conv2D(1, kernel_size=1,  padding='same', activation='sigmoid')(OUT)
+    model = keras.models.Model(inputs=[image], outputs=OUT)
+    return(model)
+
+
+
+
 
 def make_model(batch_size, image_dim, images):
     model_type='dil'
 
     if model_type=='unet' : model=make_unet(batch_size, image_dim, images)
     elif model_type=='dil': model=make_dil(batch_size, image_dim, images)
+    elif model_type=='simple': model=make_simple(batch_size, image_dim, images)
     
 
     print(model.summary())
@@ -106,7 +127,7 @@ def make_model(batch_size, image_dim, images):
 
 def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate, batch_size, nb_epoch, lr=0.005):
     #set checkpoint filename
-    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_acc:.2f}.hdf5"
+    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_dice_loss:.2f}.hdf5"
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
     #create history callback
@@ -114,9 +135,9 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
     #create csv logger callback
     #csv_logger = CSVLogger(splitext(model_name)[0]+ 'training.txt')
     #create checkpoint callback for model
-    checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_loss', verbose=0, save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_dice_loss', verbose=0, save_best_only=True, mode='max')
     #compile the model
-    model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=['accuracy', dice_loss] )
+    model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=[dice_loss] )
     #fit model
     history = model.fit([X_train],Y_train, batch_size, validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   
