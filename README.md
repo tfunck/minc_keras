@@ -1,3 +1,4 @@
+# minc_keras
 ## About
 minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package.
 
@@ -46,6 +47,8 @@ python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --e
 
 ## Authors
 Thomas Funck (thomas.funck@mail.mcgill.ca)
+
 Paul Lemaitre
+
 Andrew Doyle
 
