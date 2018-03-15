@@ -122,6 +122,7 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
     #compile the model
     model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=[dice_metric] )
     #fit model
+    print("Running with", nb_epoch)
     history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   
     model.save(model_name)
