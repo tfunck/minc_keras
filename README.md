@@ -1,3 +1,6 @@
+## About
+minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package.
+
 ## Installation
 
 ### Docker (very easy):
@@ -15,7 +18,7 @@ pip3 install   pandas numpy scipy h5py matplotlib tensorflow keras
 
 git clone https://github.com/tfunck/minc_keras
 
-### Data
+## Data
 
 Data should be organized in the BIDS format (http://bids.neuroimaging.io/). While the code in this repository is in theory supports HDF5 files, at the moment only the MINC format is supported. Nifti support will be provided in future releases. 
 
@@ -32,7 +35,7 @@ data/output/sub-02/sub-02_task-01_ses-01_T1w_anat_rsl.mnc
 data/output/sub-02/sub-02_task-01_ses-01_variant-seg_rsl.mnc
 
 
-### Useage
+## Useage
 
 #### Basic Useage:
 
@@ -41,4 +44,8 @@ python3 minc_keras/minc_keras.py --source /path/to/your/data/ --target /path/to/
 ##### Example:
 python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --epochs 5 --input-str "T1w_anat" --label-str "seg" --predict 1 
 
+## Authors
+Thomas Funck (thomas.funck@mail.mcgill.ca)
+Paul Lemaitre
+Andrew Doyle
 
