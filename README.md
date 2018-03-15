@@ -19,15 +19,12 @@ git clone https://github.com/tfunck/minc_keras
 
 Data should be organized in the BIDS format (http://bids.neuroimaging.io/). While the code in this repository is in theory supports HDF5 files, at the moment only the MINC format is supported. Nifti support will be provided in future releases. 
 
-#### Example :
-data/
-data/sub-01/sub-01_task-01_ses-01_T1w.mnc
-data/sub-01/sub-01_task-01_ses-01_labels.mnc
-data/sub-02/sub-02_task-01_ses-01_T1w.mnc
-data/sub-02/sub-02_task-01_ses-01_labels.mnc
-
-#### Example Data
-
+#### Example Data :
+data/output/
+data/output/sub-01/sub-01_task-01_ses-01_T1w_anat_rsl.mnc
+data/output/sub-01/sub-01_task-01_ses-01_variant-seg_rsl.mnc
+data/output/sub-02/sub-02_task-01_ses-01_T1w_anat_rsl.mnc
+data/output/sub-02/sub-02_task-01_ses-01_variant-seg_rsl.mnc
 
 ### Useage
 
@@ -36,6 +33,6 @@ data/sub-02/sub-02_task-01_ses-01_labels.mnc
 python3 minc_keras/minc_keras.py --source /path/to/your/data/ --target /path/to/desired/output --epochs <number of epochs>  --input-str "string that identifies input files" --label-str "string that identifies labeled files" --predict <list of which subjects in test set> 
 
 ##### Example:
-python3 minc_keras/minc_keras.py --source data/ --target /hcp/results/ --epochs 5 --input-str "T1w" --label-str "label" --predict 1 
+python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --epochs 5 --input-str "T1w_anat" --label-str "seg" --predict 1 
 
 
