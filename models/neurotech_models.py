@@ -16,7 +16,7 @@ from math import sqrt
 from utils import *
 import json
 
-def base_model(batch_size, image_dim, images, nK, kernel_size, drop_out):
+def base_model( image_dim,  nK, kernel_size, drop_out):
     IN = OUT = Input(shape=(image_dim[1], image_dim[2],1))
     n_layers=int(len(nK))
     kDim=[kernel_size] * n_layers
@@ -28,49 +28,49 @@ def base_model(batch_size, image_dim, images, nK, kernel_size, drop_out):
     model = keras.models.Model(inputs=[IN], outputs=OUT)
     return(model)
 
-def model_0_0(batch_size, image_dim, images):
+def model_0_0( image_dim):
     nK=[16,16,32,32,64,64]
     kernel_size = 3 
     drop_out=0
-    return base_model(batch_size, image_dim, images,nK, kernel_size, drop_out)
+    return base_model( image_dim, nK, kernel_size, drop_out)
 
-def model_1_0(batch_size, image_dim, images):
+def model_1_0( image_dim):
     '''
     Increase number of layers
     '''
     nK=[16,16,16,32,32,64,64,64]
     kernel_size = 3 
     drop_out=0
-    return base_model(batch_size, image_dim, images,nK, kernel_size, drop_out)
+    return base_model( image_dim, nK, kernel_size, drop_out)
 
 
 
-def model_2_0(batch_size, image_dim, images):
+def model_2_0( image_dim):
     '''
     Increase kernel size
     '''
     nK=[16,16,32,32,64,64]
     kernel_size = 5 
     drop_out=0
-    return base_model(batch_size, image_dim, images,nK, kernel_size, drop_out)
+    return base_model( image_dim, nK, kernel_size, drop_out)
 
-def model_3_0(batch_size, image_dim, images):
+def model_3_0( image_dim):
     '''
     Increase the depth of the layers but keep the total number of parameters
     '''
     nK=[8,8,8,16,16,16,32,32]
     kernel_size = 3
     drop_out=0
-    return base_model(batch_size, image_dim, images,nK, kernel_size, drop_out)
+    return base_model( image_dim, nK, kernel_size, drop_out)
 
-def model_4_0(batch_size, image_dim, images):
+def model_4_0( image_dim):
     nK=[16,16,32,32,64,64,64]
     kernel_size = 3 
     drop_out=0.25
-    return base_model(batch_size, image_dim, images,nK, kernel_size, drop_out)
+    return base_model( image_dim, nK, kernel_size, drop_out)
 
-def model_4_1(batch_size, image_dim, images):
+def model_4_1( image_dim):
     nK=[16,16,32,32,64,64,64]
     kernel_size = 3 
     drop_out=0.5
-    return base_model(batch_size, image_dim, images,nK, kernel_size, drop_out)
+    return base_model( image_dim, nK, kernel_size, drop_out)
