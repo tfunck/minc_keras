@@ -20,11 +20,17 @@ git clone https://github.com/tfunck/minc_keras
 Data should be organized in the BIDS format (http://bids.neuroimaging.io/). While the code in this repository is in theory supports HDF5 files, at the moment only the MINC format is supported. Nifti support will be provided in future releases. 
 
 #### Example Data :
+
 data/output/
+
 data/output/sub-01/sub-01_task-01_ses-01_T1w_anat_rsl.mnc
+
 data/output/sub-01/sub-01_task-01_ses-01_variant-seg_rsl.mnc
+
 data/output/sub-02/sub-02_task-01_ses-01_T1w_anat_rsl.mnc
+
 data/output/sub-02/sub-02_task-01_ses-01_variant-seg_rsl.mnc
+
 
 ### Useage
 
