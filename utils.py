@@ -73,12 +73,12 @@ def dice_metric(y_true, y_pred):
     Returns
     :return: DICE coefficient
     """
-    ytf = K.round(K.flatten(y_true))
-    ypf = K.round(K.flatten(y_pred))
+    #ytf = K.round(K.flatten(y_true))
+    #ypf = K.round(K.flatten(y_pred))
 
-    overlap = 2*K.sum(ytf*ypf)
-    total = K.sum(ytf*ytf) + K.sum(ypf * ypf)
-
-    return overlap / total
-
+    #overlap = 2*K.sum(ytf*ypf)
+    #total = K.sum(ytf*ytf) + K.sum(ypf * ypf)
+    
+    #return overlap / total
+    return -1 * dice_loss(y_true, y_pred)
 

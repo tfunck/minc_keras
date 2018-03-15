@@ -11,10 +11,12 @@ from keras.activations import relu
 from keras.callbacks import History, ModelCheckpoint
 import numpy as np
 from predict import save_image
-from custom_loss import *
+#from custom_loss import *
+from neurotech_models import *
 from math import sqrt
 from utils import *
 import json
+
 def make_unet(batch_size, image_dim, images):
     img_rows=image_dim[1]
     img_cols=image_dim[2]
@@ -77,12 +79,12 @@ def make_dil(batch_size, image_dim, images):
 
     OUT = BatchNormalization()(image)
     #kDim=[3,3,3,3,3,3,3]
-    #nK=[21,21,21,21,21,21,21,1]
-    #n_dil=[1,1,2,4,8,16,1,1]
+    #nK=[21,21,21,21,21,22,21,1]
     n_dil=[1,2,4,8,16,1]
+    #n_dil=[1,1,1,2,2,4,4,8,16,1,1]
     n_layers=int(len(n_dil))
-    kDim=[5] * n_layers
-    nK=[21] * n_layers
+    kDim=[6] * n_layers
+    nK=[26] * n_layers
     for i in range(n_layers):
         OUT = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], dilation_rate=(n_dil[i],n_dil[i]),activation='relu',padding='same')(OUT)
         OUT = BatchNormalization()(OUT)
@@ -92,33 +94,18 @@ def make_dil(batch_size, image_dim, images):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_simple(batch_size, image_dim, images):
-    
-    image = Input(shape=(image_dim[1], image_dim[2],1))
-
-    OUT = BatchNormalization()(image)
-    nK=[16,16,16,32,32,32,64,64,64,64]
-    n_layers=int(len(nK))
-    kDim=[5] * n_layers
-    for i in range(n_layers):
-        OUT = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation='relu',padding='same')(OUT)
-        #OUT = BatchNormalization()(OUT)
-        OUT = Dropout(0.25)(OUT)
-
-    OUT = Conv2D(1, kernel_size=1,  padding='same', activation='sigmoid')(OUT)
-    model = keras.models.Model(inputs=[image], outputs=OUT)
-    return(model)
-
-
-
-
-
-def make_model(batch_size, image_dim, images):
-    model_type='dil'
-
+def make_model(batch_size, image_dim, images, model_type='model_0_0'):
     if model_type=='unet' : model=make_unet(batch_size, image_dim, images)
     elif model_type=='dil': model=make_dil(batch_size, image_dim, images)
-    elif model_type=='simple': model=make_simple(batch_size, image_dim, images)
+    elif model_type=='model_0_0': model=model_0_0(batch_size, image_dim, images)
+    elif model_type=='model_1_0': model=model_1_0(batch_size, image_dim, images)
+    elif model_type=='model_1_1': model=model_1_1(batch_size, image_dim, images)
+    elif model_type=='model_2_0': model=model_2_0(batch_size, image_dim, images)
+    elif model_type=='model_2_1': model=model_2_1(batch_size, image_dim, images)
+    elif model_type=='model_3_0': model=model_1_0(batch_size, image_dim, images)
+    elif model_type=='model_3_1': model=model_1_0(batch_size, image_dim, images)
+    elif model_type=='model_4_0': model=model_1_0(batch_size, image_dim, images)
+    elif model_type=='model_4_1': model=model_1_0(batch_size, image_dim, images)
     
 
     print(model.summary())

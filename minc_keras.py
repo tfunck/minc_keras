@@ -15,7 +15,7 @@ from plot_metrics import *
 
 
 
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5', images_fn='images.csv',  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',  verbose=1 ):
 
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
@@ -34,7 +34,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     [images, image_dim] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
 
     ### 1) Define architecture of neural network
-    model = make_model(batch_size, image_dim, images)
+    model = make_model(batch_size, image_dim, images, model_type)
 
     ### 2) Train network on data
 
@@ -56,7 +56,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     X_test=np.load(prepare_data.test_x_fn+'.npy')
     Y_test=np.load(prepare_data.test_y_fn+'.npy')
     test_score = model.evaluate(X_test, Y_test, verbose=1)
-    print('Test: Loss=', test_score[0],'Accuracy=',test_score[1], 'Dice:', test_score[2])
+    print('Test: Loss=', test_score[0], 'Dice:', test_score[1])
     np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
 
     ### 4) Produce prediction
@@ -76,16 +76,16 @@ if __name__ == '__main__':
     parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
     parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
-    parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
+    #parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--model', dest='model_fn', default='model.hdf5',  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
+    parser.add_argument('--model-type', dest='model_type', default='model_0_0',  help='Name of network architecture to use (Default=model_0_0): unet, model_0_0 (simple convolution-only network), dil (same as model_0_0 but with dilations).')
     parser.add_argument('--ratios', dest='ratios', nargs=2, type=float , default=[0.7,0.15,0.15],  help='List of ratios for training, validating, and testing (default = 0.7 0.15 0.15)')
     parser.add_argument('--predict', dest='images_to_predict', type=str, default=None, help='either 1) \'all\' to predict all images OR a comma separated list of index numbers of images on which to perform prediction (by default perform none). example \'1,4,10\' ')
     parser.add_argument('--input-str', dest='input_str', type=str, default='pet', help='String for input (X) images')
     parser.add_argument('--label-str', dest='label_str', type=str, default='brainmask', help='String for label (Y) images')
-    parser.add_argument('--onehot-label', dest='onehot_label', type=str, default=None, help='String in input image file names that determines the image class for a one-hot vector.')
     parser.add_argument('--clobber', dest='clobber',  action='store_true', default=False,  help='clobber')
     parser.add_argument('-v', '--verbose', dest='verbose', type=int,default=1, help='Level of verbosity (0=silent, 1=basic (default), 2=detailed, 3=debug')
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,images_to_predict= args.images_to_predict, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, verbose=args.verbose)

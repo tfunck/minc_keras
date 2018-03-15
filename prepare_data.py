@@ -93,6 +93,7 @@ def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios,
     #prepare_data.test_onehot_fn = data_dir + os.sep + 'test_onehot'
     prepare_data.test_y_fn = data_dir + os.sep + 'test_y'
     ### 1) Organize inputs into a data frame, match each PET image with label image
+    
     if not exists(images_fn) or clobber: 
         images = set_images(source_dir, ratios,images_fn, input_str, label_str )
     else: 
