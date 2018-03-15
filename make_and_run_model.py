@@ -17,7 +17,7 @@ from math import sqrt
 from utils import *
 import json
 
-def make_unet(batch_size, image_dim, images):
+def make_unet( image_dim):
     img_rows=image_dim[1]
     img_cols=image_dim[2]
     nMLP=16
@@ -73,7 +73,7 @@ def make_unet(batch_size, image_dim, images):
     return model
 
 
-def make_dil(batch_size, image_dim, images):
+def make_dil( image_dim):
     
     image = Input(shape=(image_dim[1], image_dim[2],1))
 
@@ -94,43 +94,38 @@ def make_dil(batch_size, image_dim, images):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model(batch_size, image_dim, images, model_type='model_0_0'):
-    if model_type=='unet' : model=make_unet(batch_size, image_dim, images)
-    elif model_type=='dil': model=make_dil(batch_size, image_dim, images)
-    elif model_type=='model_0_0': model=model_0_0(batch_size, image_dim, images)
-    elif model_type=='model_1_0': model=model_1_0(batch_size, image_dim, images)
-    elif model_type=='model_1_1': model=model_1_1(batch_size, image_dim, images)
-    elif model_type=='model_2_0': model=model_2_0(batch_size, image_dim, images)
-    elif model_type=='model_2_1': model=model_2_1(batch_size, image_dim, images)
-    elif model_type=='model_3_0': model=model_1_0(batch_size, image_dim, images)
-    elif model_type=='model_3_1': model=model_1_0(batch_size, image_dim, images)
-    elif model_type=='model_4_0': model=model_1_0(batch_size, image_dim, images)
-    elif model_type=='model_4_1': model=model_1_0(batch_size, image_dim, images)
+def make_model( image_dim, model_type='model_0_0'):
+    if model_type=='unet' : model=make_unet( image_dim)
+    elif model_type=='dil': model=make_dil( image_dim)
+    elif model_type=='model_0_0': model=model_0_0( image_dim)
+    elif model_type=='model_1_0': model=model_1_0( image_dim)
+    elif model_type=='model_1_1': model=model_1_1( image_dim)
+    elif model_type=='model_2_0': model=model_2_0( image_dim)
+    elif model_type=='model_2_1': model=model_2_1( image_dim)
+    elif model_type=='model_3_0': model=model_1_0( image_dim)
+    elif model_type=='model_3_1': model=model_1_0( image_dim)
+    elif model_type=='model_4_0': model=model_1_0( image_dim)
+    elif model_type=='model_4_1': model=model_1_0( image_dim)
     
 
     print(model.summary())
     return(model)
 
 
-def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate, batch_size, nb_epoch, lr=0.005):
-    #set checkpoint filename
-    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_dice_metric:.2f}.hdf5"
+def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, lr=0.005):
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
-    #create history callback
-    #history_callback = History()
-    #create csv logger callback
-    #csv_logger = CSVLogger(splitext(model_name)[0]+ 'training.txt')
+    #set checkpoint filename
+    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_dice_metric:.2f}.hdf5"
     #create checkpoint callback for model
     checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_dice_metric', verbose=0, save_best_only=True, mode='max')
     #compile the model
     model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=[dice_metric] )
     #fit model
-    history = model.fit([X_train],Y_train, batch_size, validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
+    history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   
     model.save(model_name)
 
-    #save history 
     with open(history_fn, 'w+') as fp: json.dump(history.history, fp)
 
     return([model, history])
