@@ -2,13 +2,11 @@
 
 ### Docker (very easy):
 
-#### 1) Install docker on your OS
-
-https://docs.docker.com/install/#cloud
+Install docker on your OS: https://docs.docker.com/install/#cloud
 
 docker pull tffunck/neurotech:latest
 
-#### 2) DIY (pretty easy):
+### DIY (pretty easy):
 wget https://bootstrap.pypa.io/get-pip.py (Or go to the link and download manually)
 
 python3 get-pip.py
