@@ -278,7 +278,7 @@ def set_images(source_dir, ratios, images_fn, input_str='pet', label_str='brainm
     # 2 - checking for potential errors
     if len(names) == 0:
         print_error_nosubject(source_dir)
-    if sum(ratios) != 1.:
+    if sum(ratios) > 1.:
         print_error_nosumone(ratios)
     
 
