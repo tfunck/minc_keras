@@ -2,6 +2,13 @@
 ## About
 minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package.
 
+#### Google Colab 
+
+You can run code via 
+
+https://drive.google.com/open?id=1dS3qoX52m2wsFWvCoBtr9IQhGextH8SO
+
+
 ## Installation
 
 ### Docker (very easy):
@@ -44,6 +51,8 @@ python3 minc_keras/minc_keras.py --source /path/to/your/data/ --target /path/to/
 
 ##### Example:
 python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --epochs 5 --input-str "T1w_anat" --label-str "seg" --predict 1 
+
+
 
 ## Authors
 Thomas Funck (thomas.funck@mail.mcgill.ca)
