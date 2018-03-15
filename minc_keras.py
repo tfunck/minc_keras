@@ -49,7 +49,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
         X_validate=np.load(prepare_data.validate_x_fn+'.npy')
         Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
-        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, prepare_data.batch_size, nb_epoch, images)
+        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, prepare_data.batch_size, nb_epoch)
 
     ### 3) Evaluate model on test data
     model = load_model(model_fn)
