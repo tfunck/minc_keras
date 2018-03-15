@@ -12,7 +12,7 @@ from keras.callbacks import History, ModelCheckpoint
 import numpy as np
 from predict import save_image
 #from custom_loss import *
-from neurotech_models import *
+from models.neurotech_models import *
 from math import sqrt
 from utils import *
 import json
