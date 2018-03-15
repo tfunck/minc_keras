@@ -34,7 +34,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     [images, image_dim] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
 
     ### 1) Define architecture of neural network
-    model = make_model(batch_size, image_dim, images, model_type)
+    model = make_model(image_dim, model_type)
 
     ### 2) Train network on data
 
