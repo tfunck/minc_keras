@@ -17,7 +17,7 @@ from math import sqrt
 from utils import *
 import json
 
-def make_unet( image_dim):
+def make_unet( image_dim, nlabels, activation):
     img_rows=image_dim[1]
     img_cols=image_dim[2]
     nMLP=16
@@ -64,10 +64,9 @@ def make_unet( image_dim):
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(up9)
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv9)
 
-    conv10 = Convolution2D(1, 1, 1, activation='sigmoid')(conv9)
+    conv10 = Convolution2D(nlabels, 1, 1, activation=activation)(conv9)
 
     model = keras.models.Model(input=[image], output=conv10)
-    #model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=[jaccard_coef, jaccard_coef_int, 'accuracy'])
 
     print(model.summary())
     return model
@@ -94,25 +93,24 @@ def make_dil( image_dim):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model( image_dim, model_type='model_0_0'):
-    if model_type=='unet' : model=make_unet( image_dim)
-    elif model_type=='dil': model=make_dil( image_dim)
-    elif model_type=='model_0_0': model=model_0_0( image_dim)
-    elif model_type=='model_1_0': model=model_1_0( image_dim)
-    elif model_type=='model_1_1': model=model_1_1( image_dim)
-    elif model_type=='model_2_0': model=model_2_0( image_dim)
-    elif model_type=='model_2_1': model=model_2_1( image_dim)
-    elif model_type=='model_3_0': model=model_1_0( image_dim)
-    elif model_type=='model_3_1': model=model_1_0( image_dim)
-    elif model_type=='model_4_0': model=model_1_0( image_dim)
-    elif model_type=='model_4_1': model=model_1_0( image_dim)
+def make_model( image_dim, nlabels, model_type='model_0_0', activation="sigmoid"):
+    if model_type=='unet' : model=make_unet( image_dim, nlabels, activation)
+    elif model_type=='dil': model=make_dil( image_dim, nlabels, activation)
+    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, activation)
+    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, activation)
+    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation)
+    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation)
+    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation)
+    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, activation)
+    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation)
+    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation)
+    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation)
     
 
     print(model.summary())
     return(model)
 
-
-def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, lr=0.005):
+def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, loss='categorical_cross', lr=0.005):
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
     #set checkpoint filename
@@ -120,7 +118,7 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
     #create checkpoint callback for model
     checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_dice_metric', verbose=0, save_best_only=True, mode='max')
     #compile the model
-    model.compile(loss = 'binary_crossentropy', optimizer=ada,metrics=[dice_metric] )
+    model.compile(loss = loss, optimizer=ada,metrics=[dice_metric] )
     #fit model
     print("Running with", nb_epoch)
     history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])

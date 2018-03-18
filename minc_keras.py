@@ -15,7 +15,7 @@ from plot_metrics import *
 
 
 
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv', loss='categorical_cross_entropy', activation="sigmoid",  verbose=1 ):
 
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
@@ -34,7 +34,9 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     [images, image_dim] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
 
     ### 1) Define architecture of neural network
-    model = make_model(image_dim, model_type)
+    Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
+    nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
+    model = make_model(image_dim, nlabels, model_type, activation=activation)
 
     ### 2) Train network on data
 
@@ -48,8 +50,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
         X_train=np.load(prepare_data.train_x_fn+'.npy')
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
         X_validate=np.load(prepare_data.validate_x_fn+'.npy')
-        Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
-        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch)
+        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch, loss=loss)
 
     ### 3) Evaluate model on test data
     model = load_model(model_fn)
@@ -76,6 +77,8 @@ if __name__ == '__main__':
     parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
     parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
+    parser.add_argument('--loss', dest='loss', type=int,default='categorical_cross_entropy', help='Loss function to optimize network')
+    parser.add_argument('--activation', dest='activation', type=int,default='sigmoid', help='Activation function for last layer of network')
     #parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--model', dest='model_fn', default='model.hdf5',  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
     parser.add_argument('--model-type', dest='model_type', default='model_0_0',  help='Name of network architecture to use (Default=model_0_0): unet, model_0_0 (simple convolution-only network), dil (same as model_0_0 but with dilations).')
@@ -88,4 +91,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, activation=args.activation, verbose=args.verbose)
