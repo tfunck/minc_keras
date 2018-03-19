@@ -14,6 +14,7 @@ from glob import glob
 from utils import *
 import json
 import argparse
+from keras.utils import to_categorical
 from keras.utils.generic_utils import get_custom_objects
 get_custom_objects().update({"dice_metric": dice_metric})
 
@@ -125,14 +126,21 @@ def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, loss,
 
     X_predict = model.predict(X_validate, batch_size = 1)
     if type(X_predict) != type(np.array([])) : return 1
-    #reshape all 3 numpy arrays to turn them from (zdim, ydim, xdim, 1) --> (zdim, ydim, xdim)
     
-    X_validate = np.sum(X_validate,axis=3).reshape(X_validate.shape[0:3])
-    X_predict  = np.sum(X_predict,axis=3).reshape(X_predict.shape[0:3])
-    Y_validate = np.sum(Y_validate,axis=3).reshape(Y_validate.shape[0:3])
-
+    X_validate = X_validate.reshape(X_validate.shape[0:3])
+    print(np.unique(Y_validate))
+    exit(0)
+    for x in to_categorical(Y_validate,3 ) :
+        for y in x :
+            for z in y :
+                if np.argmax(z) > 0 :
+                    print(np.argmax(z))
+                    print(z)
+    X_predict  = np.argmax(X_predict, axis=3) 
+    Y_validate = Y_validate.reshape(Y_validate.shape[0:3])
+    print( np.unique(X_predict))
+    exit(0)
     #save slices from 3 numpy arrays to <image_fn>
-    #print( X_validate.mean(), X_predict.mean(), Y_validate.mean() )
     save_image(X_validate, X_predict,  Y_validate, image_fn)
     del Y_validate
     del X_validate
@@ -140,7 +148,6 @@ def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, loss,
     return image_fn
 
 
-from keras.utils import to_categorical
 def predict(model_fn, predict_dir, data_dir, images_fn, loss, evaluate=False, category='test', images_to_predict=None, verbose=1 ):
     '''
         Applies model defined in <model_fn> to a set of validate images and saves results to png image

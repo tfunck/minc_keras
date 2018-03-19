@@ -203,7 +203,6 @@ def attribute_category(out, category, category_class,ratio,  verbose=1):
             The value of test or train is the same for a given subject.
     '''
     nImages=out.shape[0]
-    print(nImages, ratio)
     n = int(round(nImages * ratio))
     i=0
 

@@ -45,7 +45,9 @@ def feature_extraction(images,image_dim, x_output_file, y_output_file,data_dir, 
         pet = normalize(pet)
         pet=pet.reshape(list(pet.shape)+[1])
 
-        label = normalize(label) 
+
+        for i,j in zip(np.unique(label), range(len(np.unique(label)))):
+            label[ label == i ] = j
         label=label.reshape(list(label.shape)+[1])
         for j in range(row.total_samples):
             if pet[j].sum() != 0 : 
