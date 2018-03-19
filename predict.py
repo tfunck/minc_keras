@@ -97,7 +97,7 @@ def set_output_image_fn(pet_fn, predict_dir, verbose=1):
     
     return image_fn
 
-def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, verbose=1):
+def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, loss, verbose=1):
     '''
         Slices the input numpy arrays to extract 3d volumes, creates output filename for subject, applies model to X_validate and then saves volume to png.
 
@@ -122,12 +122,14 @@ def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, verbo
     image_fn = sub('.png','_'+str(i)+'.png',image_fn)
     #print(image_fn)
     #apply model to X_validate to get predicted values
+
     X_predict = model.predict(X_validate, batch_size = 1)
     if type(X_predict) != type(np.array([])) : return 1
     #reshape all 3 numpy arrays to turn them from (zdim, ydim, xdim, 1) --> (zdim, ydim, xdim)
-    X_validate = X_validate.reshape(X_validate.shape[0:3])
-    X_predict  = X_predict.reshape(X_predict.shape[0:3])
-    Y_validate = Y_validate.reshape(Y_validate.shape[0:3])
+    
+    X_validate = np.sum(X_validate,axis=3).reshape(X_validate.shape[0:3])
+    X_predict  = np.sum(X_predict,axis=3).reshape(X_predict.shape[0:3])
+    Y_validate = np.sum(Y_validate,axis=3).reshape(Y_validate.shape[0:3])
 
     #save slices from 3 numpy arrays to <image_fn>
     #print( X_validate.mean(), X_predict.mean(), Y_validate.mean() )
@@ -138,7 +140,8 @@ def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, verbo
     return image_fn
 
 
-def predict(model_fn, predict_dir, data_dir, images_fn, evaluate=False, category='test', images_to_predict=None, verbose=1 ):
+from keras.utils import to_categorical
+def predict(model_fn, predict_dir, data_dir, images_fn, loss, evaluate=False, category='test', images_to_predict=None, verbose=1 ):
     '''
         Applies model defined in <model_fn> to a set of validate images and saves results to png image
         
@@ -179,12 +182,16 @@ def predict(model_fn, predict_dir, data_dir, images_fn, evaluate=False, category
     y_fn=glob(data_dir + os.sep + category + '_y.npy')
     if x_fn != [] : x_fn=x_fn[0]
     if y_fn != [] : y_fn=y_fn[0]
-    X_all = np.load(x_fn)
+    X_all =np.load(x_fn) 
     Y_all = np.load(y_fn)
     if verbose >= 1: print("Data loaded for prediction")
 
     if evaluate : 
-        results = model.evaluate(x=X_all, y=Y_all, batch_size=1)
+        if loss in ["categorical_crossentropy"] :
+            Y_all_0 = to_categorical(Y_all)
+        else :
+            Y_all_0 = Y_all
+        results = model.evaluate(x=X_all, y=Y_all_0, batch_size=1)
         print(results)
    
     for i in images_to_predict:
@@ -197,7 +204,7 @@ def predict(model_fn, predict_dir, data_dir, images_fn, evaluate=False, category
         #print(start_sample, end_sample)
         print(os.path.basename(images.iloc[i,].pet), start_sample, end_sample)
         #print(predict_dir)
-        predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start_sample, end_sample, verbose)
+        predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start_sample, end_sample, loss, verbose)
 
 
     if verbose >= 1:  print("Prediction completed")

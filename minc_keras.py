@@ -15,7 +15,7 @@ from plot_metrics import *
 
 
 
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv', loss='categorical_cross_entropy', activation="sigmoid",  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv', loss='categorical_crossentropy', activation="sigmoid",  verbose=1 ):
 
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
@@ -50,20 +50,20 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
         X_train=np.load(prepare_data.train_x_fn+'.npy')
         Y_train=np.load(prepare_data.train_y_fn+'.npy')
         X_validate=np.load(prepare_data.validate_x_fn+'.npy')
-        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch, loss=loss)
+        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch, nlabels, loss=loss)
 
     ### 3) Evaluate model on test data
     model = load_model(model_fn)
     X_test=np.load(prepare_data.test_x_fn+'.npy')
     Y_test=np.load(prepare_data.test_y_fn+'.npy')
-    test_score = model.evaluate(X_test, Y_test, verbose=1)
-    print('Test: Loss=', test_score[0], 'Dice:', test_score[1])
-    np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
+    #test_score = model.evaluate(X_test, Y_test, verbose=1)
+    #print('Test: Loss=', test_score[0], 'Dice:', test_score[1])
+    #np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
 
     ### 4) Produce prediction
     #predict(model_fn, validate_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="validate", verbose=verbose)
     #predict(model_fn, train_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="train", verbose=verbose)
-    predict(model_fn, test_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="test", verbose=verbose)
+    predict(model_fn, test_dir, data_dir, images_fn, loss, images_to_predict=images_to_predict, category="test", verbose=verbose)
     plot_loss(history_fn, model_fn, report_dir)
 
     return 0
@@ -77,8 +77,8 @@ if __name__ == '__main__':
     parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
     parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
-    parser.add_argument('--loss', dest='loss', type=int,default='categorical_cross_entropy', help='Loss function to optimize network')
-    parser.add_argument('--activation', dest='activation', type=int,default='sigmoid', help='Activation function for last layer of network')
+    parser.add_argument('--loss', dest='loss', type=str,default='categorical_crossentropy', help='Loss function to optimize network')
+    parser.add_argument('--activation', dest='activation', type=str,default='sigmoid', help='Activation function for last layer of network')
     #parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--model', dest='model_fn', default='model.hdf5',  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
     parser.add_argument('--model-type', dest='model_type', default='model_0_0',  help='Name of network architecture to use (Default=model_0_0): unet, model_0_0 (simple convolution-only network), dil (same as model_0_0 but with dilations).')

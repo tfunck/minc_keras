@@ -110,7 +110,8 @@ def make_model( image_dim, nlabels, model_type='model_0_0', activation="sigmoid"
     print(model.summary())
     return(model)
 
-def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, loss='categorical_cross', lr=0.005):
+from keras.utils import to_categorical
+def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, loss='categorical_crossentropy', lr=0.005):
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
     #set checkpoint filename
@@ -121,6 +122,12 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
     model.compile(loss = loss, optimizer=ada,metrics=[dice_metric] )
     #fit model
     print("Running with", nb_epoch)
+    if loss in ['categorical_crossentropy'] : 
+        X_train = X_train
+        Y_train = to_categorical(Y_train, num_classes=nlabels)
+        X_validate = X_validate
+        Y_validate = to_categorical(Y_validate, num_classes=nlabels)
+
     history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   
     model.save(model_name)

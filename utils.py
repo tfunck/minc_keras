@@ -3,6 +3,15 @@ import h5py
 import numpy as np
 from os.path import splitext, basename, exists
 from keras import backend as K
+
+def from_categorical(cat, img):
+    out = np.zeros(img.shape)
+    for i, cat0 in  zip(np.unique(img), cat) :
+        out = out + cat0 * i
+    return(out)
+    
+
+
 def set_model_name(filename, target_dir, ext='.hdf5'):
     '''function to set default model name'''
     return  target_dir+os.sep+splitext(basename(filename))[0]+ext

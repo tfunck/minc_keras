@@ -17,14 +17,15 @@ from utils import *
 import json
 
 def base_model( image_dim,  nK, kernel_size, drop_out, nlabels, activation):
-    IN = OUT = Input(shape=(image_dim[1], image_dim[2],1))
+    IN = CONV = Input(shape=(image_dim[1], image_dim[2],1))
     n_layers=int(len(nK))
     kDim=[kernel_size] * n_layers
     for i in range(n_layers):
-        OUT = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation='relu',padding='same')(OUT)
-        OUT = Dropout(drop_out)(OUT)
+        CONV = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation='relu',padding='same')(CONV)
+        CONV = Dropout(drop_out)(CONV)
 
-    OUT = Conv2D(nlabels, kernel_size=1,  padding='same', activation=activation)(OUT)
+    OUT = Conv2D(1, kernel_size=[1,1], activation=activation,  padding='same')(CONV)
+    OUT= Dense(nlabels, activation='softmax')(OUT)
     model = keras.models.Model(inputs=[IN], outputs=OUT)
     return(model)
 
