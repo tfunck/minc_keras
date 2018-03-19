@@ -17,7 +17,7 @@ from math import sqrt
 from utils import *
 import json
 
-def make_unet( image_dim, nlabels, activation_main, activation_final):
+def make_unet( image_dim, nlabels, activation_hidden, activation_output):
     img_rows=image_dim[1]
     img_cols=image_dim[2]
     nMLP=16
@@ -93,39 +93,39 @@ def make_dil( image_dim):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model( image_dim, nlabels, model_type='model_0_0', activation_main="relu", activation_final="sigmoid"):
-    if model_type=='unet' : model=make_unet( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation_main, activation_final)
-    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation_main, activation_final)
+def make_model( image_dim, nlabels, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid"):
+    if model_type=='unet' : model=make_unet( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation_hidden, activation_output)
     
 
     print(model.summary())
     return(model)
 
-from keras.utils import to_categorical
-def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, loss='categorical_crossentropy', lr=0.005):
+def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, metric="categorical_accuracy", loss='categorical_crossentropy', lr=0.005):
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
     #set checkpoint filename
-    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_dice_metric:.2f}.hdf5"
+    checkpoint_fn = splitext(model_name)[0]+"_checkpoint-{epoch:02d}-{val_loss:.2f}.hdf5"
     #create checkpoint callback for model
-    checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_dice_metric', verbose=0, save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_loss', verbose=0, save_best_only=True, mode='max')
     #compile the model
-    model.compile(loss = loss, optimizer=ada,metrics=[dice_metric] )
+    model.compile(loss = loss, optimizer=ada,metrics=[metric] )
     #fit model
     print("Running with", nb_epoch)
+
+    X_train = X_train
+    X_validate = X_validate
     if loss in ['categorical_crossentropy'] : 
-        X_train = X_train
         Y_train = to_categorical(Y_train, num_classes=nlabels)
-        X_validate = X_validate
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 
     history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])

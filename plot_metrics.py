@@ -6,31 +6,31 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_loss(history_fn,model_fn, report_dir):
+def plot_loss(metric, history_fn,model_fn, report_dir):
     with open(history_fn, 'r') as fp: history=json.load(fp)
 
-    training_fn=report_dir +os.sep +splitext(basename(model_fn))[0] +'_training_plot.png'
-    epoch_num = range(len(history['dice_metric']))
-    # train_error = np.subtract(1, np.array(hist.history['acc']))
-    # test_error  = np.subtract(1, np.array(hist.history['val_acc']))
+    training_fn=report_dir +os.sep +splitext(basename(model_fn))[0] +'_metric_plot.png'
+    epoch_num = range(len(history[metric]))
     plt.clf()
-    plt.subplot(2,1,1)
-    plt.plot(epoch_num, np.array(history['dice_metric']), label='Training Accuracy')
-    plt.plot(epoch_num, np.array(history['val_dice_metric']), label="Validation Accuracy")
-    plt.legend( loc="upper right", ncol=1, prop={'size':18})
+    plt.plot(epoch_num, np.array(history[metric]), label='Training Accuracy')
+    plt.plot(epoch_num, np.array(history['val_'+metric]), label="Validation Accuracy")
+    plt.legend( loc="upper right", ncol=1, prop={'size':8})
     plt.legend(shadow=True)
     plt.xlabel("Training Epoch Number")
-    plt.ylabel("Accuracy")
+    plt.ylabel("Metric")
+    plt.savefig(training_fn, bbox_inches="tight", dpi=500, width=1000)
+    plt.close()
 
-    plt.subplot(2,1,2)
-    plt.plot(epoch_num, np.array(history['dice_metric']), label='Training Loss')
-    plt.plot(epoch_num, np.array(history['val_dice_metric']), label="Validation Loss")
-    plt.legend( loc="upper right", ncol=1, prop={'size':18})
+    training_fn=report_dir +os.sep +splitext(basename(model_fn))[0] +'_loss_plot.png'
+    plt.clf()
+    plt.plot(epoch_num, np.array(history['loss']), label='Training Loss')
+    plt.plot(epoch_num, np.array(history['val_loss']), label="Validation Loss")
+    plt.legend( loc="upper right", ncol=1, prop={'size':8})
     plt.legend(shadow=True)
     plt.xlabel("Training Epoch Number")
     plt.ylabel("Loss")
     plt.tight_layout()
-    plt.savefig(training_fn, bbox_inches="tight", dpi=1000, width=2000)
+    plt.savefig(training_fn, bbox_inches="tight", dpi=500, width=1000)
     plt.close()
     print('Model training plot written to ',training_fn )
 

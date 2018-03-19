@@ -15,7 +15,7 @@ from plot_metrics import *
 
 
 
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv', loss='categorical_crossentropy', activation_main="relu", activation_final="sigmoid",  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv', loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy",  verbose=1 ):
 
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
@@ -36,7 +36,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     ### 1) Define architecture of neural network
     Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
     nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
-    model = make_model(image_dim, nlabels, model_type, activation_main=activation_main, activation_final=activation_final)
+    model = make_model(image_dim, nlabels, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
 
     ### 2) Train network on data
 
@@ -64,7 +64,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     #predict(model_fn, validate_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="validate", verbose=verbose)
     #predict(model_fn, train_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="train", verbose=verbose)
     predict(model_fn, test_dir, data_dir, images_fn, loss, images_to_predict=images_to_predict, category="test", verbose=verbose)
-    plot_loss(history_fn, model_fn, report_dir)
+    plot_loss(metric, history_fn, model_fn, report_dir)
 
     return 0
 
@@ -75,11 +75,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1, help='size of batch')
     parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
-    parser.add_argument('--target', dest='target_dir', type=str, help='target directory')
+    parser.add_argument('--target', dest='target_dir', type=str, default="results", help='target directory for output (Default: results)')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
     parser.add_argument('--loss', dest='loss', type=str,default='categorical_crossentropy', help='Loss function to optimize network')
-    parser.add_argument('--activation-final', dest='activation_final', type=str,default='sigmoid', help='Activation function for last layer of network')
-    parser.add_argument('--activation-main', dest='activation_main', type=str,default='relu', help='Activation function for core convolutional layers of network')
+    parser.add_argument('--metric', dest='metric', type=str,default='categorical_accuracy', help='Categorical accuracy')
+    parser.add_argument('--activation-output', dest='activation_output', type=str,default='sigmoid', help='Activation function for last layer of network')
+    parser.add_argument('--activation-hidden', dest='activation_hidden', type=str,default='relu', help='Activation function for core convolutional layers of network')
+    
     #parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
     parser.add_argument('--model', dest='model_fn', default='model.hdf5',  help='model file where network weights will be saved/loaded. will be automatically generated if not provided by user')
     parser.add_argument('--model-type', dest='model_type', default='model_0_0',  help='Name of network architecture to use (Default=model_0_0): unet, model_0_0 (simple convolution-only network), dil (same as model_0_0 but with dilations).')
@@ -92,4 +94,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, activation_main=args.activation_main, activation_final=args.activation_final, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, verbose=args.verbose)

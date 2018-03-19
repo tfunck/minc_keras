@@ -186,14 +186,6 @@ def predict(model_fn, predict_dir, data_dir, images_fn, loss, evaluate=False, ca
     Y_all = np.load(y_fn)
     if verbose >= 1: print("Data loaded for prediction")
 
-    if evaluate : 
-        if loss in ["categorical_crossentropy"] :
-            Y_all_0 = to_categorical(Y_all)
-        else :
-            Y_all_0 = Y_all
-        results = model.evaluate(x=X_all, y=Y_all_0, batch_size=1)
-        print(results)
-   
     for i in images_to_predict:
         if i==0 : start_sample = 0
         else :    start_sample = int(images.iloc[0:i,].valid_samples.sum())
