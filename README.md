@@ -6,6 +6,10 @@ minc_keras is a code base that was developped during a hackathon to facillitate 
 
 You can run code via https://drive.google.com/open?id=1dS3qoX52m2wsFWvCoBtr9IQhGextH8SO
 
+## Presentations
+
+![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_3.21.18_deeplearningwithmri.pdf) 
+
 
 ## Installation
 
