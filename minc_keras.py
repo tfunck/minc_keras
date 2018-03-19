@@ -56,8 +56,10 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     model = load_model(model_fn)
     X_test=np.load(prepare_data.test_x_fn+'.npy')
     Y_test=np.load(prepare_data.test_y_fn+'.npy')
-    #test_score = model.evaluate(X_test, Y_test, verbose=1)
-    #print('Test: Loss=', test_score[0], 'Dice:', test_score[1])
+    if loss in ["categorical_crossentropy"] :
+        Y_test=to_categorical(Y_test)
+    test_score = model.evaluate(X_test, Y_test, verbose=1)
+    print('Test: Loss=', test_score[0], 'Metric=', test_score[1])
     #np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
 
     ### 4) Produce prediction
