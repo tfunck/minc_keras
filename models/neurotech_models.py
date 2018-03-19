@@ -16,62 +16,61 @@ from math import sqrt
 from utils import *
 import json
 
-def base_model( image_dim,  nK, kernel_size, drop_out, nlabels, activation):
+def base_model( image_dim,  nK, kernel_size, drop_out, nlabels, activation_main, activation_final):
     IN = CONV = Input(shape=(image_dim[1], image_dim[2],1))
     n_layers=int(len(nK))
     kDim=[kernel_size] * n_layers
     for i in range(n_layers):
-        CONV = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation='relu',padding='same')(CONV)
+        CONV = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation=activation_main,padding='same')(CONV)
         CONV = Dropout(drop_out)(CONV)
 
-    OUT = Conv2D(1, kernel_size=[1,1], activation=activation,  padding='same')(CONV)
-    OUT= Dense(nlabels, activation='softmax')(OUT)
+    OUT = Conv2D(nlabels, kernel_size=[1,1], activation=activation_final,  padding='same')(CONV)
     model = keras.models.Model(inputs=[IN], outputs=OUT)
     return(model)
 
-def model_0_0( image_dim, nlabels, activation):
+def model_0_0( image_dim, nlabels, activation_main, activation_final):
     nK=[16,16,32,32,64,64]
     kernel_size = 3 
     drop_out=0
-    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation)
+    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_main,activation_final)
 
-def model_1_0( image_dim, nlabels, activation):
+def model_1_0( image_dim, nlabels, activation_main, activation_final):
     '''
     Increase number of layers
     '''
     nK=[16,16,16,32,32,64,64,64]
     kernel_size = 3 
     drop_out=0
-    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation)
+    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_main, activation_final)
 
 
 
-def model_2_0( image_dim, nlabels, activation):
+def model_2_0( image_dim, nlabels, activation_main, activation_final):
     '''
     Increase kernel size
     '''
     nK=[16,16,32,32,64,64]
     kernel_size = 5 
     drop_out=0
-    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation)
+    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_main, activation_final)
 
-def model_3_0( image_dim, nlabels, activation):
+def model_3_0( image_dim, nlabels, activation_main, activation_final):
     '''
     Increase the depth of the layers but keep the total number of parameters
     '''
     nK=[8,8,8,16,16,16,32,32]
     kernel_size = 3
     drop_out=0
-    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation)
+    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_main, activation_final)
 
-def model_4_0( image_dim, nlabels, activation):
+def model_4_0( image_dim, nlabels, activation_main, activation_final):
     nK=[16,16,32,32,64,64,64]
     kernel_size = 3 
     drop_out=0.25
-    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation)
+    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_main, activation_final)
 
-def model_4_1( image_dim, nlabels, activation):
+def model_4_1( image_dim, nlabels, activation_main, activation_final):
     nK=[16,16,32,32,64,64,64]
     kernel_size = 3 
     drop_out=0.5
-    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation)
+    return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_main, activation_final)

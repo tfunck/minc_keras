@@ -17,7 +17,7 @@ from math import sqrt
 from utils import *
 import json
 
-def make_unet( image_dim, nlabels, activation):
+def make_unet( image_dim, nlabels, activation_main, activation_final):
     img_rows=image_dim[1]
     img_cols=image_dim[2]
     nMLP=16
@@ -93,18 +93,18 @@ def make_dil( image_dim):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model( image_dim, nlabels, model_type='model_0_0', activation="sigmoid"):
-    if model_type=='unet' : model=make_unet( image_dim, nlabels, activation)
-    elif model_type=='dil': model=make_dil( image_dim, nlabels, activation)
-    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, activation)
-    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, activation)
-    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation)
-    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation)
-    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation)
-    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, activation)
-    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation)
-    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation)
-    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation)
+def make_model( image_dim, nlabels, model_type='model_0_0', activation_main="relu", activation_final="sigmoid"):
+    if model_type=='unet' : model=make_unet( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation_main, activation_final)
+    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation_main, activation_final)
     
 
     print(model.summary())
