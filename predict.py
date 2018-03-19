@@ -121,25 +121,15 @@ def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, loss,
     #set output filename for png file
     image_fn = set_output_image_fn(pet_fn, predict_dir, verbose)
     image_fn = sub('.png','_'+str(i)+'.png',image_fn)
-    #print(image_fn)
+    print("Saving prediction to:", image_fn)
     #apply model to X_validate to get predicted values
 
     X_predict = model.predict(X_validate, batch_size = 1)
     if type(X_predict) != type(np.array([])) : return 1
     
     X_validate = X_validate.reshape(X_validate.shape[0:3])
-    print(np.unique(Y_validate))
-    exit(0)
-    for x in to_categorical(Y_validate,3 ) :
-        for y in x :
-            for z in y :
-                if np.argmax(z) > 0 :
-                    print(np.argmax(z))
-                    print(z)
     X_predict  = np.argmax(X_predict, axis=3) 
     Y_validate = Y_validate.reshape(Y_validate.shape[0:3])
-    print( np.unique(X_predict))
-    exit(0)
     #save slices from 3 numpy arrays to <image_fn>
     save_image(X_validate, X_predict,  Y_validate, image_fn)
     del Y_validate
