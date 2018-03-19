@@ -142,7 +142,7 @@ def process(name, source_dir, pet_list,  label_str='brainmask', ext='mnc' ):
 
     label_str = os.path.splitext(label_str)[0]
     if len(task_names) == 0:
-        label = glob(source_dir + os.sep + '**' +  os.sep + '*'+label_str+'.'+ext, recursive=True)
+        label = glob(source_dir + os.sep + '**' +  os.sep + '*'+label_str+'*.'+ext, recursive=True)
         data_subject = createdf(name, pet_names,  pet, label, task=False)
 
     else :
