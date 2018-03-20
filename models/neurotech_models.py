@@ -38,7 +38,7 @@ def model_1_0( image_dim, nlabels, activation_hidden, activation_output):
     '''
     Increase number of layers
     '''
-    nK=[16,16,16,32,32,32,64,64,64]
+    nK=[16,16,32,32,32,64,64,64,128]
     kernel_size = 3 
     drop_out=0
     return base_model( image_dim, nK, kernel_size, drop_out, nlabels, activation_hidden, activation_output)
