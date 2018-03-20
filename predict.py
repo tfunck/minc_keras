@@ -128,7 +128,10 @@ def predict_image(i, model, X_all, Y_all, pet_fn, predict_dir, start, end, loss,
     if type(X_predict) != type(np.array([])) : return 1
     
     X_validate = X_validate.reshape(X_validate.shape[0:3])
-    X_predict  = np.argmax(X_predict, axis=3) 
+    if loss in categorical_functions :
+        X_predict  = np.argmax(X_predict, axis=3) 
+    else :
+        X_predict = X_predict.reshape(X_predict.shape[0:3]) 
     Y_validate = Y_validate.reshape(Y_validate.shape[0:3])
     #save slices from 3 numpy arrays to <image_fn>
     save_image(X_validate, X_predict,  Y_validate, image_fn)

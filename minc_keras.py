@@ -56,7 +56,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     model = load_model(model_fn)
     X_test=np.load(prepare_data.test_x_fn+'.npy')
     Y_test=np.load(prepare_data.test_y_fn+'.npy')
-    if loss in ["categorical_crossentropy"] :
+    if loss in categorical_functions :
         Y_test=to_categorical(Y_test)
     test_score = model.evaluate(X_test, Y_test, verbose=1)
     print('Test: Loss=', test_score[0], 'Metric=', test_score[1])

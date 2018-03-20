@@ -124,7 +124,7 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
 
     X_train = X_train
     X_validate = X_validate
-    if loss in ['categorical_crossentropy'] : 
+    if loss in categorical_functions : 
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 
