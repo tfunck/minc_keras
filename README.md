@@ -4,9 +4,9 @@ minc_keras is a code base that was developped during a hackathon to facillitate 
 
 #### Google Colab 
 
-Create / Log-in to Google account 
-Go to https://colab.research.google.com 
-Download and load: https://tinyurl.com/yd8dd5x3
+Create / Log-in to Google account \
+Go to https://colab.research.google.com \
+Download and load: https://tinyurl.com/yd8dd5x3\
 
 ## Presentations
 
