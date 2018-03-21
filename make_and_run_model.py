@@ -93,11 +93,11 @@ def make_dil( image_dim):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model( image_dim, nlabels, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid"):
+def make_model( image_dim, nlabels,nK, kernel_size, drop_out, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid"):
     if model_type=='unet' : model=make_unet( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
     elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation_hidden, activation_output)
@@ -105,6 +105,11 @@ def make_model( image_dim, nlabels, model_type='model_0_0', activation_hidden="r
     elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='custom': 
+        nK=[int(i) for i in nK.split(",") ]
+
+        model=base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    
     
 
     print(model.summary())

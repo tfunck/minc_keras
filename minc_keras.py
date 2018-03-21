@@ -15,7 +15,7 @@ from plot_metrics import *
 
 
 
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv', loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy",  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy",  verbose=1 ):
 
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
@@ -36,7 +36,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     ### 1) Define architecture of neural network
     Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
     nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
-    model = make_model(image_dim, nlabels, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
+    model = make_model(image_dim, nlabels,nK, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
 
     ### 2) Train network on data
 
@@ -80,8 +80,11 @@ if __name__ == '__main__':
     parser.add_argument('--target', dest='target_dir', type=str, default="results", help='target directory for output (Default: results)')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
     parser.add_argument('--loss', dest='loss', type=str,default='categorical_crossentropy', help='Loss function to optimize network')
+    parser.add_argument('--nK', dest='nK', type=str,default='16,32,64,128', help='number of kernels')
+    parser.add_argument('--kernel-size', dest='kernel_size', type=int, default=3, help='Size of kernels')
+    parser.add_argument('--drop-out', dest='drop_out', type=float,default=0.0, help='Drop out rate')
     parser.add_argument('--metric', dest='metric', type=str,default='categorical_accuracy', help='Categorical accuracy')
-    parser.add_argument('--activation-output', dest='activation_output', type=str,default='sigmoid', help='Activation function for last layer of network')
+    parser.add_argument('--activation-output', dest='activation_output', type=str,default='softmax', help='Activation function for last layer of network')
     parser.add_argument('--activation-hidden', dest='activation_hidden', type=str,default='relu', help='Activation function for core convolutional layers of network')
     
     #parser.add_argument('--feature-dim', dest='feature_dim', type=int,default=2, help='Warning: option temporaily deactivated. Do not use. Format of features to use (3=Volume, 2=Slice, 1=profile')
@@ -96,4 +99,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, verbose=args.verbose)
