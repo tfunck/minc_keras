@@ -10,8 +10,8 @@ Download and load: https://tinyurl.com/yd8dd5x3\
 
 ## Presentations
 
-![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) 
-
+![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) \
+![NeurotechMTL -- Intro to ML (3.21.18)](./presentations/IntroML.pdf)
 
 ## Installation
 
