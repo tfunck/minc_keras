@@ -3,13 +3,12 @@
 minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package.
 
 
-## Presentations
-
 ### Collaborators
-
 <img src=sponsors/neurotechx.png align="right" alt=neurotechx width=100>\
 Presentations were created in collaboration with [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Our 3 pillars are “Community”, “Education”, and “Professional Development”.
 
+
+## Presentations
 
 ### Deep Learning with MRI
 #### Version: 28.08.18
