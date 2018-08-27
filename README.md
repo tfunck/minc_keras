@@ -56,6 +56,12 @@ python3 minc_keras/minc_keras.py --source /path/to/your/data/ --target /path/to/
 ##### Example:
 python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --epochs 5 --input-str "T1w_anat" --label-str "seg" --predict 1 
 
+## Sponsorship
+
+### Ludmer Centre
+
+Inline-style: 
+![alt text](sponsors/ludmer.png)
 
 
 ## Authors
