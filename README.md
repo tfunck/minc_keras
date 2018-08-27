@@ -72,16 +72,14 @@ python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --e
 
 ## Support provided by
 
-### Montreal Neurological Institute
-https://www.mcgill.ca/neuro/
+### [Montreal Neurological Institute](https://www.mcgill.ca/neuro/)
+
 ![MNI](sponsors/mni.jpg)
 
-### Ludmer Centre
-http://ludmercentre.ca/
+### [Ludmer Centre](http://ludmercentre.ca/)
 ![Ludmer](sponsors/ludmer.png)
 
-### MCIN
-https://mcin-cnim.ca/
+### [MCIN](https://mcin-cnim.ca/)
 ![MCIN](sponsors/mcin.png)
 
 ## Authors
