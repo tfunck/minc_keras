@@ -12,12 +12,12 @@ Presentations were created in collaboration with [NeuroTechX](https://neurotechx
 
 
 ### Deep Learning with MRI
-#### 28.08.18
+#### Version: 28.08.18
 
-#### 21.03.18
+#### Version: 21.03.18
 
 ![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) \
-![NeurotechMTL -- Intro to ML (3.21.18)](./presentations/IntroML.pdf)\
+![NeurotechMTL -- Intro to ML (3.21.18)](./presentations/IntroML.pdf)
 
 ### More coming soon...
 
