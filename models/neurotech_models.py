@@ -71,9 +71,9 @@ def model_3_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden,
     return base_model( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
 
 def model_4_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output):
-    nK=[16,16,32,32,32,64,64,64,128]
+    nK=[32,32,32,32,64,64,64,128,128,128]
     kernel_size = 5
-    drop_out=0.25
+    drop_out=0.0
     return base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
 
 
