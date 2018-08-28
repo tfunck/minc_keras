@@ -6,7 +6,7 @@ minc_keras is a code base that was developped during a hackathon to facillitate 
 ### Collaborators
 <img src=sponsors/neurotechx.png align="right" alt=neurotechx width=100>\
 <img src=sponsors/mcin.png align="right" alt=mcin width=150>
-Presentations were created in collaboration with [MCIN](https://mcin-cnim.ca/) and [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Our 3 pillars are “Community”, “Education”, and “Professional Development”.
+Presentations were created in collaboration with the [MCIN](https://mcin-cnim.ca/) lab and [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Our 3 pillars are “Community”, “Education”, and “Professional Development”.
 
 
 
@@ -84,6 +84,9 @@ python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --e
 
 ### [MCIN](https://mcin-cnim.ca/)
 ![MCIN](sponsors/mcin.png)
+
+### [NeuroTechX](https://neurotechx.com/)
+![NeuroTechX](sponsors/neurotechx.png)
 
 ## Authors
 Thomas Funck (thomas.funck@mail.mcgill.ca)
