@@ -98,13 +98,13 @@ def make_model( image_dim, nlabels,nK, kernel_size, drop_out, model_type='model_
     elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
     elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, activation_hidden, activation_output)
+    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
     elif model_type=='custom': 
         nK=[int(i) for i in nK.split(",") ]
 
