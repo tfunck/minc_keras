@@ -12,13 +12,13 @@ Presentations were created in collaboration with [NeuroTechX](https://neurotechx
 
 ### Deep Learning with MRI
 #### Version: 28.08.18
-![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_28.8.18_deep_learning_with_mri.pdf) \
-![NeurotechMTL -- Intro to ML (3.21.18)](./presentations/neurotechmtl_28.8.18_suarez_intro_to_ml.pdf)
+![NeurotechMTL -- Deep Learning with MRI (Part 1 & 4) (28.8.18)](./presentations/neurotechmtl_28.8.18_deep_learning_with_mri.pdf) \
+![NeurotechMTL -- Intro to ML (Part 2) (28.8.18)](./presentations/neurotechmtl_28.8.18_suarez_intro_to_ml.pdf)
 
 #### Version: 21.03.18
 
-![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) \
-![NeurotechMTL -- Intro to ML (3.21.18)](./presentations/IntroML.pdf)
+![NeurotechMTL -- Deep Learning with MRI (21.3.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) \
+![NeurotechMTL -- Intro to ML (21.3.18)](./presentations/IntroML.pdf)
 
 ### More coming soon...
 
