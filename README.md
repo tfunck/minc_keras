@@ -26,7 +26,7 @@ Presentations were created in collaboration with [NeuroTechX](https://neurotechx
 
 Create / Log-in to Google account \
 Go to https://colab.research.google.com \
-Download and load: https://tinyurl.com/yd8dd5x3\
+Download and load: https://www.dropbox.com/s/8uw13lbwbf83c0d/NeuroTech_MTL_28_8_18.ipynb?dl=0
 
 ### Docker (very easy):
 
