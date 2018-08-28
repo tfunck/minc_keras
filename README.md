@@ -6,7 +6,7 @@ minc_keras is a code base that was developped during a hackathon to facillitate 
 ### Collaborators
 <img src=sponsors/neurotechx.png align="right" alt=neurotechx width=100>\
 <img src=sponsors/mcin.png align="right" alt=mcin width=150>
-Presentations were created in collaboration with the [MCIN](https://mcin-cnim.ca/) lab and [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Our 3 pillars are “Community”, “Education”, and “Professional Development”.
+Presentations were created in collaboration with the [MCIN](https://mcin-cnim.ca/) lab and [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Their 3 pillars are “Community”, “Education”, and “Professional Development”.
 
 
 
@@ -14,8 +14,9 @@ Presentations were created in collaboration with the [MCIN](https://mcin-cnim.ca
 
 ### Deep Learning with MRI
 #### Version: 28.08.18
-![Workshop 1 -- Deep Learning with MRI (Part 1 & 4) (28.8.18)](./presentations/neurotechmtl_28.8.18_deep_learning_with_mri.pdf) \
-![Workshop 1 -- Intro to ML (Part 2) (28.8.18)](./presentations/neurotechmtl_28.8.18_suarez_intro_to_ml.pdf)
+![Workshop 1 (Part 1 & 4) -- Deep Learning with MRI ](./presentations/neurotechmtl_28.8.18_deep_learning_with_mri.pdf) \
+![Workshop 1 (Part 2) -- Intro to ML ](./presentations/neurotechmtl_28.8.18_suarez_intro_to_ml.pdf) \
+![Workshop 1 (Part 3) -- Intro to Neural Networks ](./presentations/neurotechmtl_28.8.18_doyle_intro_to_neural_nets.pdf) 
 
 #### Version: 21.03.18
 
