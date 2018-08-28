@@ -1,22 +1,26 @@
 # minc_keras
 ## About
-minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package.
+minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package. It is also used as a hands-on teaching tool for the presentations listed below. 
 
 
 ### Collaborators
 <img src=sponsors/neurotechx.png align="right" alt=neurotechx width=100>\
-Presentations were created in collaboration with [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Our 3 pillars are “Community”, “Education”, and “Professional Development”.
+<img src=sponsors/mcin.png align="right" alt=mcin width=150>
+Presentations were created in collaboration with the [MCIN](https://mcin-cnim.ca/) lab and [NeuroTechX](https://neurotechx.com/). NeuroTechX is a non-profit organization whose mission is to facilitate the advancement of neurotechnology by providing key resources and learning opportunities, and by being leaders in local and worldwide technological initiatives. Our 3 pillars are “Community”, “Education”, and “Professional Development”.
+
 
 
 ## Presentations
 
 ### Deep Learning with MRI
 #### Version: 28.08.18
+![Workshop 1 -- Deep Learning with MRI (Part 1 & 4) (28.8.18)](./presentations/neurotechmtl_28.8.18_deep_learning_with_mri.pdf) \
+![Workshop 1 -- Intro to ML (Part 2) (28.8.18)](./presentations/neurotechmtl_28.8.18_suarez_intro_to_ml.pdf)
 
 #### Version: 21.03.18
 
-![NeurotechMTL -- Deep Learning with MRI (3.21.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) \
-![NeurotechMTL -- Intro to ML (3.21.18)](./presentations/IntroML.pdf)
+![Workshop 1 -- Deep Learning with MRI (21.3.18)](./presentations/neurotechmtl_21.3.18_deep_learning_with_mri.pdf) \
+![Workshop 1 -- Intro to ML (21.3.18)](./presentations/IntroML.pdf)
 
 ### More coming soon...
 
@@ -80,6 +84,9 @@ python3 minc_keras/minc_keras.py --source minc_keras/data/output/ --target . --e
 
 ### [MCIN](https://mcin-cnim.ca/)
 ![MCIN](sponsors/mcin.png)
+
+### [NeuroTechX](https://neurotechx.com/)
+![NeuroTechX](sponsors/neurotechx.png)
 
 ## Authors
 Thomas Funck (thomas.funck@mail.mcgill.ca)
