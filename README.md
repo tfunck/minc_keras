@@ -22,19 +22,19 @@ Presentations were created in collaboration with [NeuroTechX](https://neurotechx
 
 ## Installation
 
-#### Google Colab 
+### Google Colab (best)
 
 Create / Log-in to Google account \
 Go to https://colab.research.google.com \
 Download and load: https://www.dropbox.com/s/8uw13lbwbf83c0d/NeuroTech_MTL_28_8_18.ipynb?dl=0
 
-### Docker (very easy):
+#### Docker (very easy):
 
 Install docker on your OS: https://docs.docker.com/install/#cloud
 
 docker pull tffunck/neurotech:latest
 
-### DIY (pretty easy):
+#### DIY (pretty easy):
 wget https://bootstrap.pypa.io/get-pip.py (Or go to the link and download manually)
 
 python3 get-pip.py
