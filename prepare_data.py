@@ -84,38 +84,45 @@ def get_image_dim(fn):
 
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named validate- and train-
 def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size, feature_dim=2, images_fn='images.csv',  clobber=False):
+    data={}
     ### 0) Setup file names and output directories
-    prepare_data.train_x_fn = data_dir + os.sep + 'train_x'
-    #prepare_data.train_onehot_fn = data_dir + os.sep + 'train_onehot'
-    prepare_data.train_y_fn = data_dir + os.sep + 'train_y'
-    prepare_data.validate_x_fn = data_dir + os.sep + 'validate_x'
-    #prepare_data.validate_onehot_fn = data_dir + os.sep + 'validate_onehot'
-    prepare_data.validate_y_fn = data_dir + os.sep + 'validate_y'
-    prepare_data.test_x_fn = data_dir + os.sep + 'test_x'
-    #prepare_data.test_onehot_fn = data_dir + os.sep + 'test_onehot'
-    prepare_data.test_y_fn = data_dir + os.sep + 'test_y'
+    data["train_x_fn"] = data_dir + os.sep + 'train_x'
+
+    data["train_y_fn"] = data_dir + os.sep + 'train_y'
+    data["validate_x_fn"] = data_dir + os.sep + 'validate_x'
+
+    data["validate_y_fn"] = data_dir + os.sep + 'validate_y'
+    data["test_x_fn"] = data_dir + os.sep + 'test_x'
+
+    data["test_y_fn"] = data_dir + os.sep + 'test_y'
     ### 1) Organize inputs into a data frame, match each PET image with label image
     
     if not exists(images_fn) or clobber: 
+        ### set_images is a very important function that will find all the PET images and their
+        ### corresponding labelled images from source_dir. This function uses <input_str> and <label_str>
+        ### to identify which files are inputs and labeles, respectively. The images use the BIDS file format
+        ### where subject, session, task, radiotracer are specificied in the filename. These variables are parsed
+        ### from the filenames and also stored in the data frame
         images = set_images(source_dir, ratios,images_fn, input_str, label_str )
     else: 
         images = pd.read_csv(images_fn)
-    ## 1.5) Split images into training and validate data frames
+        
+    ## 2) Split images into training and validate data frames
     train_images = images[images['category']=='train'].reset_index()
     validate_images = images[images['category']=='validate'].reset_index()
     test_images = images[images['category']=='test'].reset_index()
     train_valid_samples = train_images.valid_samples.values.sum()  
     validate_valid_samples  =  validate_images.valid_samples.values.sum()
 
-    ### 2) Get spatial dimensions of images 
-    image_dim = get_image_dim(images.iloc[0].label)
+    ### 3) Get spatial dimensions of images 
+    data["image_dim"] = get_image_dim(images.iloc[0].label)
 
-    ### 3) Set up dimensions of data tensors to be used for training and validateing. all of the
-    if not exists(prepare_data.train_x_fn + '.npy') or not exists(prepare_data.train_y_fn + '.npy') or clobber:
-        feature_extraction(train_images, image_dim, prepare_data.train_x_fn, prepare_data.train_y_fn, data_dir, clobber)
-    if not exists(prepare_data.validate_x_fn + '.npy') or not exists(prepare_data.validate_y_fn + '.npy') or clobber:
-        feature_extraction(validate_images, image_dim, prepare_data.validate_x_fn, prepare_data.validate_y_fn, data_dir, clobber)
-    if not exists(prepare_data.test_x_fn + '.npy') or not exists(prepare_data.test_y_fn + '.npy') or clobber:
-        feature_extraction(validate_images, image_dim, prepare_data.test_x_fn, prepare_data.test_y_fn, data_dir, clobber)
-    prepare_data.batch_size = adjust_batch_size(train_valid_samples, validate_valid_samples, batch_size)
-    return [ images, image_dim ] 
+    ### 4) Set up dimensions of data tensors to be used for training and validateing. all of the
+    if not exists(data["train_x_fn"] + '.npy') or not exists( data["train_y_fn"] + '.npy') or clobber:
+        feature_extraction(train_images, image_dim, data["train_x_fn"], data["train_y_fn"], data_dir, clobber)
+    if not exists(data["validate_x_fn"] + '.npy') or not exists(data["validate_y_fn"] + '.npy') or clobber:
+        feature_extraction(validate_images, image_dim, data["validate_x_fn"], data["validate_y_fn"], data_dir, clobber)
+    if not exists(data["test_x_fn"] + '.npy') or not exists(data["test_y_fn"] + '.npy') or clobber:
+        feature_extraction(validate_images, image_dim, prepare_data["test_x_fn"], data["test_y_fn"], data_dir, clobber)
+    data["batch_size"] = adjust_batch_size(train_valid_samples, validate_valid_samples, batch_size)
+    return [ images, data ] 

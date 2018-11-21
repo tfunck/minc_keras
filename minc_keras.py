@@ -13,33 +13,40 @@ from utils import *
 from custom_loss import *
 from plot_metrics import *
 
-
-
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy",  verbose=1 ):
-
+def create_dir_verbose(directory):
+    if not exists(directory): 
+        makedirs(directory)
+        print("Created directory:", directory)
+        
+def setup_dirs(target_dir) :
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
     train_dir = target_dir+os.sep+'predict'+os.sep+'train'+os.sep
     test_dir = target_dir+os.sep+'predict'+os.sep+'test'+os.sep
     validate_dir = target_dir+os.sep+'predict'+os.sep+'validate'+os.sep
     model_dir=target_dir+os.sep+'model'
-    if not exists(train_dir): makedirs(train_dir)
-    if not exists(test_dir): makedirs(test_dir)
-    if not exists(validate_dir): makedirs(validate_dir)
-    if not exists(data_dir): makedirs(data_dir)
-    if not exists(report_dir): makedirs(report_dir) 
-    if not exists(model_dir): makedirs(model_dir) 
+    create_dir_verbose(train_dir)
+    create_dir_verbose(test_dir)
+    create_dir_verbose(validate_dir)
+    create_dir_verbose(data_dir)
+    create_dir_verbose(report_dir) 
+    create_dir_verbose(model_dir)    
+    return 0
+        
+        
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy",  verbose=1 ):
+    
+    setup_dirs(target_dir)
 
     images_fn = set_model_name(images_fn, report_dir, '.csv')
-    [images, image_dim] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
+    [images, data] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
 
     ### 1) Define architecture of neural network
-    Y_validate=np.load(prepare_data.validate_y_fn+'.npy')
+    Y_validate=np.load(data["validate_y_fn"]+'.npy')
     nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
     model = make_model(image_dim, nlabels,nK, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
 
     ### 2) Train network on data
-
     model_fn =set_model_name(model_fn, model_dir)
     history_fn = splitext(model_fn)[0] + '_history.json'
 
@@ -47,21 +54,23 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     if not exists(model_fn) or clobber:
     #If model_fn does not exist, or user wishes to write over (clobber) existing model
     #then train a new model and save it
-        X_train=np.load(prepare_data.train_x_fn+'.npy')
-        Y_train=np.load(prepare_data.train_y_fn+'.npy')
-        X_validate=np.load(prepare_data.validate_x_fn+'.npy')
+        X_train=np.load(data["train_x_fn"]+'.npy')
+        Y_train=np.load(data["train_y_fn"]+'.npy')
+        X_validate=np.load(data["validate_x_fn"]+'.npy')
         model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch, nlabels, loss=loss)
 
     ### 3) Evaluate model on test data
     model = load_model(model_fn)
-    X_test=np.load(prepare_data.test_x_fn+'.npy')
-    Y_test=np.load(prepare_data.test_y_fn+'.npy')
+    X_test=np.load(data["test_x_fn"]+'.npy')
+    Y_test=np.load(data["test_y_fn"]+'.npy')
     if loss in categorical_functions :
         Y_test=to_categorical(Y_test)
     test_score = model.evaluate(X_test, Y_test, verbose=1)
     print('Test: Loss=', test_score[0], 'Metric=', test_score[1])
     #np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
 
+    
+    
     ### 4) Produce prediction
     #predict(model_fn, validate_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="validate", verbose=verbose)
     #predict(model_fn, train_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="train", verbose=verbose)

@@ -180,7 +180,7 @@ def create_out(dfd):
 
     out = pd.DataFrame(columns=dfd[list(dfd.keys())[0]].columns)
     for k, v in dfd.items():
-        out = pd.concat([out, v])
+        out = pd.concat([out, v],sort=True)
     out["category"] = "unknown"
     out.reset_index(inplace=True, drop=True)
     return(out)
