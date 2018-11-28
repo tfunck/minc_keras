@@ -18,7 +18,7 @@ def create_dir_verbose(directory):
         makedirs(directory)
         print("Created directory:", directory)
         
-def setup_dirs(target_dir) :
+def setup_dirs(target_dir="./") :
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
     train_dir = target_dir+os.sep+'predict'+os.sep+'train'+os.sep
