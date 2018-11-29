@@ -13,12 +13,21 @@ from utils import *
 from custom_loss import *
 from plot_metrics import *
 
+
+
+
 def create_dir_verbose(directory):
     if not exists(directory): 
         makedirs(directory)
         print("Created directory:", directory)
         
 def setup_dirs(target_dir="./") :
+    global data_dir
+    global report_dir
+    global train_dir
+    global test_dir
+    global validate_dir
+    global model_dir
     data_dir = target_dir + os.sep + 'data'+os.sep
     report_dir = target_dir+os.sep+'report'+os.sep
     train_dir = target_dir+os.sep+'predict'+os.sep+'train'+os.sep
