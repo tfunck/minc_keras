@@ -6,7 +6,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D, UpSampling2D
 from keras.layers.core import Dropout
 from keras.utils import to_categorical
-from keras.layers import LeakyReLU, MaxPooling2D, concatenate,Conv2DTranspose, merge, ZeroPadding2D
+from keras.layers import LeakyReLU, MaxPooling2D, concatenate,Conv2DTranspose, Concatenate, ZeroPadding2D
 from keras.activations import relu
 from keras.callbacks import History, ModelCheckpoint
 import numpy as np
@@ -24,47 +24,59 @@ def make_unet( image_dim, nlabels, activation_hidden, activation_output):
     nRshp=int(sqrt(nMLP))
     nUpSm=int(image_dim[0]/nRshp)
     image = Input(shape=(image_dim[1], image_dim[2],1))
-    
+    n_downsample=4
+    #if x != 0 or y != 0 :
+    #    print("Error: image must have dimensions that can be divided by "+"2^"+str(n_downsample)+" but has dimensions "+str(image_dim[1])+","+str(image_dim[1]) )
+    #    exit(1)
+
     BN1 = BatchNormalization()(image)
 
     conv1 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(BN1)
     conv1 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-
+    print(image_dim[0]/2, image_dim[1]/2) 
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(pool1)
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
+    print(image_dim[0]/4, image_dim[1]/4) 
     conv3 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(pool2)
     conv3 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
+    print(image_dim[0]/8, image_dim[1]/8) 
     conv4 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(pool3)
     conv4 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv4)
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
+    print(image_dim[0]/16, image_dim[1]/16) 
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(pool4)
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv5)
-
-    up6 = merge([UpSampling2D(size=(2, 2))(conv5), conv4], mode='concat', concat_axis=3)
-    conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(up6)
+    
+    up5 = UpSampling2D(size=(2, 2))(conv5)
+    #up5 = Conv2DTranspose( filters=512, kernel_size=(3,3), strides=(2, 2), padding='same')(conv5)
+    conc5 = Concatenate(axis=3)([up5, conv4])
+    conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conc5)
     conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv6)
 
-    conv6_up = UpSampling2D(size=(2, 2))(conv6)
-    conv6_pad = ZeroPadding2D( ((1,0),(1,0)) )(conv6_up)
-    up7 = merge([conv6_pad, conv3], mode='concat', concat_axis=3)
-    conv7 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(up7)
+    up6 = UpSampling2D(size=(2, 2))(conv6)
+    #up6 = Conv2DTranspose( filters=512, kernel_size=(3,3), strides=(2, 2), padding='same')(conv6)
+    conc6 = Concatenate(axis=3)([up6, conv3])
+    conv7 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(up6)
     conv7 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(conv7)
 
-    up8 = merge([UpSampling2D(size=(2, 2))(conv7), conv2], mode='concat', concat_axis=3)
-    conv8 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(up8)
+    up7 = UpSampling2D(size=(2, 2))(conv7)
+    #up7 = Conv2DTranspose( filters=512, kernel_size=(3,3), strides=(2, 2), padding='same')(conv7)
+    conc7 = Concatenate(axis=3)([up7, conv2])
+    conv8 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conc7) #(up8)
     conv8 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv8)
 
-    up9 = merge([UpSampling2D(size=(2, 2))(conv8), conv1], mode='concat', concat_axis=3)
-    conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(up9)
+    up8 = Conv2DTranspose( filters=512, kernel_size=(3,3), strides=(2, 2), padding='same')(conv8)
+    conc8 = Concatenate(axis=3)([up8, conv1])
+    conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conc8) #(up9)
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv9)
 
-    conv10 = Convolution2D(nlabels, 1, 1, activation=activation)(conv9)
+    conv10 = Convolution2D(nlabels, 1, 1, activation=activation_output)(conv9)
 
     model = keras.models.Model(input=[image], output=conv10)
 
@@ -133,6 +145,7 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 
+    print( X_train.shape, Y_train.shape, X_validate.shape, Y_validate.shape ) 
     history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   
     model.save(model_name)

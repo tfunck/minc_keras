@@ -43,17 +43,17 @@ def setup_dirs(target_dir="./") :
     return 0
         
         
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy",  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1 ):
     
     setup_dirs(target_dir)
 
     images_fn = set_model_name(images_fn, report_dir, '.csv')
-    [images, data] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,  clobber=clobber)
+    [images, data] = prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size,feature_dim, images_fn,pad_base=pad_base,  clobber=clobber)
 
     ### 1) Define architecture of neural network
     Y_validate=np.load(data["validate_y_fn"]+'.npy')
     nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
-    model = make_model(image_dim, nlabels,nK, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
+    model = make_model(data["image_dim"], nlabels,nK, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
 
     ### 2) Train network on data
     model_fn =set_model_name(model_fn, model_dir)
@@ -78,8 +78,6 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     print('Test: Loss=', test_score[0], 'Metric=', test_score[1])
     #np.savetxt(report_dir+os.sep+'model_evaluate.csv', np.array(test_score) )
 
-    
-    
     ### 4) Produce prediction
     #predict(model_fn, validate_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="validate", verbose=verbose)
     #predict(model_fn, train_dir, data_dir, images_fn, images_to_predict=images_to_predict, category="train", verbose=verbose)
@@ -94,9 +92,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1, help='size of batch')
-    parser.add_argument('--source', dest='source_dir', type=str, help='source directory')
-    parser.add_argument('--target', dest='target_dir', type=str, default="results", help='target directory for output (Default: results)')
+    parser.add_argument('--source', dest='source_dir', required=True, type=str, help='source directory')
+    parser.add_argument('--target', dest='target_dir', required=True,type=str, default="results", help='target directory for output (Default: results)')
     parser.add_argument('--epochs', dest='nb_epoch', type=int,default=10, help='number of training epochs')
+    parser.add_argument('--pad', dest='pad', type=int,default=0, help='Images must be divisible by 2^<pad>. Default = 0 ')
     parser.add_argument('--loss', dest='loss', type=str,default='categorical_crossentropy', help='Loss function to optimize network')
     parser.add_argument('--nK', dest='nK', type=str,default='16,32,64,128', help='number of kernels')
     parser.add_argument('--kernel-size', dest='kernel_size', type=int, default=3, help='Size of kernels')
@@ -117,4 +116,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, pad_base=args.pad, verbose=args.verbose)
