@@ -26,11 +26,11 @@ def base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidde
     IN = CONV = Input(shape=(image_dim[1], image_dim[2],1))
     n_layers=int(len(nK))
     kDim=[kernel_size] * n_layers
-    print(kDim)
     for i in range(n_layers):
+        print("Layer:", i, nK[i], kDim[i])
         CONV = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation=activation_hidden,padding='same')(CONV)
         CONV = Dropout(drop_out)(CONV)
-
+    print("N Labels:", nlabels)
     OUT = Conv2D(nlabels,  kernel_size=[1,1], activation=activation_output,  padding='same')(CONV)
     model = keras.models.Model(inputs=[IN], outputs=OUT)
     return(model)
