@@ -43,7 +43,7 @@ def setup_dirs(target_dir="./") :
     return 0
         
         
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1 ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False ):
     
     setup_dirs(target_dir)
 
@@ -54,6 +54,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     Y_validate=np.load(data["validate_y_fn"]+'.npy')
     nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
     model = make_model(data["image_dim"], nlabels,nK, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
+    if make_model_only : return(0)
 
     ### 2) Train network on data
     model_fn =set_model_name(model_fn, model_dir)
@@ -112,8 +113,9 @@ if __name__ == '__main__':
     parser.add_argument('--input-str', dest='input_str', type=str, default='pet', help='String for input (X) images')
     parser.add_argument('--label-str', dest='label_str', type=str, default='brainmask', help='String for label (Y) images')
     parser.add_argument('--clobber', dest='clobber',  action='store_true', default=False,  help='clobber')
+    parser.add_argument('--make-model-only', dest='make_model_only',  action='store_true', default=False,  help='Only build model and exit.')
     parser.add_argument('-v', '--verbose', dest='verbose', type=int,default=1, help='Level of verbosity (0=silent, 1=basic (default), 2=detailed, 3=debug')
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, pad_base=args.pad, verbose=args.verbose)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, pad_base=args.pad, verbose=args.verbose, make_model_only=args.make_model_only)
