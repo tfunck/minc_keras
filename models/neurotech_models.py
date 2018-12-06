@@ -16,11 +16,12 @@ from math import sqrt
 from utils import *
 import json
 
-def base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output):
+def base_model( image_dim,  nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output):
     print("N Labels:", nlabels)
     print("Kernels per layer", nK)
     print("Kernel size:", kernel_size)
     print("Drop out:",drop_out)
+    print("Number of Dilations:", n_dil)
     print("Activation hidden:", activation_hidden)
     print("Activation output:", activation_output)
     IN = CONV = Input(shape=(image_dim[1], image_dim[2],1))
@@ -28,7 +29,7 @@ def base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidde
     kDim=[kernel_size] * n_layers
     for i in range(n_layers):
         print("Layer:", i, nK[i], kDim[i])
-        CONV = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]], activation=activation_hidden,padding='same')(CONV)
+        CONV = Conv2D( nK[i] , kernel_size=[kDim[i],kDim[i]],dilations=[], activation=activation_hidden,padding='same')(CONV)
         CONV = Dropout(drop_out)(CONV)
     print("N Labels:", nlabels)
     OUT = Conv2D(nlabels,  kernel_size=[1,1], activation=activation_output,  padding='same')(CONV)

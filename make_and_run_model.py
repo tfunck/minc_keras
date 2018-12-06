@@ -17,7 +17,7 @@ from math import sqrt
 from utils import *
 import json
 
-def make_unet( image_dim, nlabels, activation_hidden, activation_output):
+def make_unet( image_dim, nlabels, activation_hidden, activation_output, verbose=0):
     img_rows=image_dim[1]
     img_cols=image_dim[2]
     nMLP=16
@@ -34,22 +34,19 @@ def make_unet( image_dim, nlabels, activation_hidden, activation_output):
     conv1 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(BN1)
     conv1 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv1)
     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-    print(image_dim[0]/2, image_dim[1]/2) 
+ 
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(pool1)
     conv2 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
-    print(image_dim[0]/4, image_dim[1]/4) 
     conv3 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(pool2)
     conv3 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
-    print(image_dim[0]/8, image_dim[1]/8) 
     conv4 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(pool3)
     conv4 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv4)
     pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-
-    print(image_dim[0]/16, image_dim[1]/16) 
+ 
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(pool4)
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv5)
     
@@ -79,8 +76,9 @@ def make_unet( image_dim, nlabels, activation_hidden, activation_output):
     conv10 = Convolution2D(nlabels, 1, 1, activation=activation_output)(conv9)
 
     model = keras.models.Model(input=[image], output=conv10)
-
-    print(model.summary())
+    
+    if verbose > 0 :
+        print(model.summary())
     return model
 
 
@@ -105,7 +103,7 @@ def make_dil( image_dim):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model( image_dim, nlabels,nK, kernel_size, drop_out, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid"):
+def make_model( image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid", verbose=0):
     if model_type=='unet' : model=make_unet( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_hidden, activation_output)
     elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
@@ -119,12 +117,15 @@ def make_model( image_dim, nlabels,nK, kernel_size, drop_out, model_type='model_
     elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
     elif model_type=='custom': 
         nK=[int(i) for i in nK.split(",") ]
-
-        model=base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+        if n_dil == None :
+            n_dil=[0] * len(nK)
+        else: 
+            n_dil=[int(i) for i in n_dil.split(",") ]
+            
+        model=base_model( image_dim,  nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output)
     
-    
-
-    print(model.summary())
+    if verbose > 0 :
+        print(model.summary())
     return(model)
 
 def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, metric="categorical_accuracy", loss='categorical_crossentropy', lr=0.005):
@@ -137,7 +138,6 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
     #compile the model
     model.compile(loss = loss, optimizer=ada,metrics=[metric] )
     #fit model
-    print("Running with", nb_epoch)
 
     X_train = X_train
     X_validate = X_validate
@@ -145,7 +145,6 @@ def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 
-    print( X_train.shape, Y_train.shape, X_validate.shape, Y_validate.shape ) 
     history = model.fit([X_train],Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch,callbacks=[ checkpoint])
     #save model   
     model.save(model_name)
