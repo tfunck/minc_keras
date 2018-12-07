@@ -13,9 +13,6 @@ from utils import *
 from custom_loss import *
 from plot_metrics import *
 
-
-
-
 def create_dir_verbose(directory):
     if not exists(directory): 
         makedirs(directory)
@@ -43,7 +40,7 @@ def setup_dirs(target_dir="./") :
     return 0
         
         
-def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='model_0_0', images_fn='images.csv',nK="16,32,64,128", kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False ):
+def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim=2, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='custom', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=3, drop_out=0, loss='categorical_crossentropy', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False ):
     
     setup_dirs(target_dir)
 
@@ -53,7 +50,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
     ### 1) Define architecture of neural network
     Y_validate=np.load(data["validate_y_fn"]+'.npy')
     nlabels=len(np.unique(Y_validate))#Number of unique labels in the labeled images
-    model = make_model(data["image_dim"], nlabels,nK, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
+    model = make_model(data["image_dim"], nlabels,nK, n_dil, kernel_size, drop_out, model_type, activation_hidden=activation_hidden, activation_output=activation_output)
     if make_model_only : return(0)
 
     ### 2) Train network on data
@@ -119,4 +116,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.feature_dim =2
 
-    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, pad_base=args.pad, verbose=args.verbose, make_model_only=args.make_model_only)
+    minc_keras(args.source_dir, args.target_dir, input_str=args.input_str, label_str=args.label_str, ratios=args.ratios, batch_size=args.batch_size, nb_epoch=args.nb_epoch, clobber=args.clobber, model_fn = args.model_fn ,model_type=args.model_type, images_to_predict= args.images_to_predict, loss=args.loss, nK=args.nK, n_dil=args.n_dil, kernel_size=args.kernel_size, drop_out=args.drop_out, activation_hidden=args.activation_hidden, activation_output=args.activation_output, metric=args.metric, pad_base=args.pad, verbose=args.verbose, make_model_only=args.make_model_only)

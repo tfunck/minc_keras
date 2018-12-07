@@ -12,7 +12,7 @@ from keras.callbacks import History, ModelCheckpoint
 import numpy as np
 from predict import save_image
 #from custom_loss import *
-from models.neurotech_models import *
+#from models.neurotech_models import *
 from math import sqrt
 from utils import *
 import json
@@ -103,32 +103,55 @@ def make_dil( image_dim):
     model = keras.models.Model(inputs=[image], outputs=OUT)
     return(model)
 
-def make_model( image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid", verbose=0):
-    if model_type=='unet' : model=make_unet( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_hidden, activation_output)
-    elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
-    elif model_type=='custom': 
-        nK=[int(i) for i in nK.split(",") ]
-        if n_dil == None :
-            n_dil=[0] * len(nK)
-        else: 
-            n_dil=[int(i) for i in n_dil.split(",") ]
-            
-        model=base_model( image_dim,  nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output)
+
+def base_model( image_dim,  nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output, verbose=1):
+    print("N Labels:", nlabels)
+    print("Drop out:",drop_out)
+    print("Number of Dilations:", n_dil)
+    print("Activation hidden:", activation_hidden)
+    print("Activation output:", activation_output)
+    nK=[int(i) for i in nK.split(",") ]
+    if n_dil == None :
+        n_dil=[1] * len(nK)
+    else: 
+        n_dil=[int(i) for i in n_dil.split(",") ]
     
+    IN = CONV = Input(shape=(image_dim[1], image_dim[2],1))
+    n_layers=int(len(nK))
+    kDim=[kernel_size] * n_layers
+
+    for i in range(n_layers):
+        print("Layer:", i, nK[i], kDim[i], n_dil[i])
+        CONV = Conv2D(nK[i], kernel_size=[kDim[i],kDim[i]],dilation_rate=(n_dil[i],n_dil[i]), activation=activation_hidden,padding='same')(CONV)
+        CONV = Dropout(drop_out)(CONV)
+
+    OUT = Conv2D(nlabels,  kernel_size=[1,1], activation=activation_output,  padding='same')(CONV)
+    model = keras.models.Model(inputs=[IN], outputs=OUT)
     if verbose > 0 :
         print(model.summary())
+    
     return(model)
 
-def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, metric="categorical_accuracy", loss='categorical_crossentropy', lr=0.005):
+
+def make_model( image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type='model_0_0', activation_hidden="relu", activation_output="sigmoid", verbose=0):
+    if model_type=='unet' : 
+        model=make_unet( image_dim, nlabels, activation_hidden, activation_output)
+    #elif model_type=='dil': model=make_dil( image_dim, nlabels, activation_hidden, activation_output)
+    #elif model_type=='model_0_0': model=model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_1_0': model=model_1_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_1_1': model=model_1_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_2_0': model=model_2_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_2_1': model=model_2_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_3_0': model=model_3_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_3_1': model=model_3_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_4_0': model=model_4_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    #elif model_type=='model_4_1': model=model_4_1( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
+    else :             
+        model=base_model( image_dim,  nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output)
+    
+    return(model)
+
+def compile_and_run(model, model_name, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, metric="categorical_accuracy", loss='categorical_crossentropy', lr=0.005, verbose=0):
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
     #set checkpoint filename
