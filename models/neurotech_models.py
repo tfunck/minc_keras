@@ -35,7 +35,7 @@ def base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidde
     model = keras.models.Model(inputs=[IN], outputs=OUT)
     return(model)
 
-def model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output):
+'''def model_0_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output):
     nK=[16,16,16]
     kernel_size = 3 
     drop_out=0
@@ -76,4 +76,4 @@ def model_4_0( image_dim, nlabels, nK, kernel_size, drop_out, activation_hidden,
     drop_out=0.0
     return base_model( image_dim,  nlabels, nK, kernel_size, drop_out, activation_hidden, activation_output)
 
-
+'''
