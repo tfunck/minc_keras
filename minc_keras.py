@@ -67,7 +67,7 @@ def minc_keras(source_dir, target_dir, input_str, label_str, ratios, feature_dim
         X_train=np.load(data["train_x_fn"]+'.npy')
         Y_train=np.load(data["train_y_fn"]+'.npy')
         X_validate=np.load(data["validate_x_fn"]+'.npy')
-        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch, nlabels, loss=loss)
+        model,history = compile_and_run(model, model_fn, history_fn, X_train,  Y_train, X_validate,  Y_validate, nb_epoch, nlabels, loss=loss, verbose=verbose)
 
     ### 3) Evaluate model on test data
     model = load_model(model_fn)
@@ -99,6 +99,7 @@ if __name__ == '__main__':
     parser.add_argument('--pad', dest='pad', type=int,default=0, help='Images must be divisible by 2^<pad>. Default = 0 ')
     parser.add_argument('--loss', dest='loss', type=str,default='categorical_crossentropy', help='Loss function to optimize network')
     parser.add_argument('--nK', dest='nK', type=str,default='16,32,64,128', help='number of kernels')
+    parser.add_argument('--n_dil', dest='n_dil', type=str,default=None, help='number of dilations')
     parser.add_argument('--kernel-size', dest='kernel_size', type=int, default=3, help='Size of kernels')
     parser.add_argument('--drop-out', dest='drop_out', type=float,default=0.0, help='Drop out rate')
     parser.add_argument('--metric', dest='metric', type=str,default='categorical_accuracy', help='Categorical accuracy')
