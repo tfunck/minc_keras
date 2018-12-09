@@ -4,7 +4,7 @@ import pandas as pd
 from os.path import basename, exists, splitext
 from os import makedirs
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from re import sub
