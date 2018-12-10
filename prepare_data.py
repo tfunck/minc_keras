@@ -108,7 +108,7 @@ def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios=
 
     data["test_y_fn"] = data_dir + os.sep + 'test_y'
 
-    if images_fn=None :images_fn= report_dir+os.sep+'images.csv'
+    if images_fn==None :images_fn= report_dir+os.sep+'images.csv'
     ### 1) Organize inputs into a data frame, match each PET image with label image
     
     if not exists(images_fn) or clobber: 
