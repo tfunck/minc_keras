@@ -95,7 +95,7 @@ def get_image_dim(fn):
     return image_dim
 
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named validate- and train-
-def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios, batch_size, feature_dim=2, images_fn='images.csv',  clobber=False, pad_base=0):
+def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios=[0.75,15], batch_size=2, feature_dim=2, images_fn='images.csv',  clobber=False, pad_base=0):
     data={}
     ### 0) Setup file names and output directories
     data["train_x_fn"] = data_dir + os.sep + 'train_x'
