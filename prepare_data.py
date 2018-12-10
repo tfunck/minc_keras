@@ -95,7 +95,7 @@ def get_image_dim(fn):
     return image_dim
 
 # Go to the source directory and grab the relevant data. Convert it to numpy arrays named validate- and train-
-def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios=[0.75,0.15], batch_size=2, feature_dim=2, images_fn='images.csv',  clobber=False, pad_base=0):
+def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios=[0.75,0.15], batch_size=2, feature_dim=2, images_fn=None,  clobber=False, pad_base=0):
     data={}
     ### 0) Setup file names and output directories
     data["train_x_fn"] = data_dir + os.sep + 'train_x'
@@ -107,6 +107,8 @@ def prepare_data(source_dir, data_dir, report_dir, input_str, label_str, ratios=
     data["test_x_fn"] = data_dir + os.sep + 'test_x'
 
     data["test_y_fn"] = data_dir + os.sep + 'test_y'
+
+    if images_fn=None :images_fn= report_dir+os.sep+'images.csv'
     ### 1) Organize inputs into a data frame, match each PET image with label image
     
     if not exists(images_fn) or clobber: 
