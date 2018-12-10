@@ -59,7 +59,7 @@ def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslice
 
             #use imwshow to display all three images
             ax1=plt.subplot(ncol, nrow, i)
-            plt.imshow(ABC, cmap='Spectral')
+            plt.imshow(ABC, cmap='hot')
             plt.axis('off')
             
             slice_index+=1
