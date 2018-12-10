@@ -17,6 +17,7 @@ def create_dir_verbose(directory):
     if not exists(directory): 
         makedirs(directory)
         print("Created directory:", directory)
+    return directory
         
 def setup_dirs(target_dir="./") :
     global data_dir
