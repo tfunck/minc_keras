@@ -59,7 +59,7 @@ def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslice
 
             #use imwshow to display all three images
             ax1=plt.subplot(ncol, nrow, i)
-            plt.imshow(ABC, cmap='spectral')
+            plt.imshow(ABC, cmap='Spectral')
             plt.axis('off')
             
             slice_index+=1
@@ -71,7 +71,7 @@ def save_image(X_validate, X_predict, Y_validate ,output_fn, slices=None, nslice
     plt.tight_layout( )
     plt.subplots_adjust(  wspace=0.01, hspace=0.1)
     #outer_grid.tight_layout(fig, pad=0, h_pad=0, w_pad=0) 
-    plt.savefig(output_fn, dpi=1000, width=8000)  
+    plt.savefig(output_fn, dpi=500, width=8000)  
     plt.clf()
     return 0
 
