@@ -1,6 +1,6 @@
 # minc_keras
 ## About
-minc_keras is a code base that was developped during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package. It is also used as a hands-on teaching tool for the presentations listed below. 
+minc_keras is a code base that was developed during a hackathon to facillitate the implementation of deep learning models for brain imaging with the Keras package. It is also used as a hands-on teaching tool for the presentations listed below. 
 
 ## MAIN 2018 :
 ### [Presentation](./presentations/MAIN2018_segmentation.pdf)
@@ -14,6 +14,9 @@ Presentations were created in collaboration with the [MCIN](https://mcin-cnim.ca
 
 
 ## Presentations
+
+### MAIN 2018: 
+![Presentation](./presentations/MAIN2018_segmentation.pdf)
 
 ### Deep Learning with MRI
 #### Version: 28.08.18
