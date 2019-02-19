@@ -43,12 +43,25 @@ def feature_extraction(images, temp_image_dim, pad_image_dim, x_output_file, y_o
     total_index=0
     for index, row in images.iterrows():
         if index % 10 == 0: print("Saving",images["category"][0],"images:",index, '/', images.shape[0] , end='\r') 
+        #meera
+        #these 4 lines need to be changed
+        #i think you would just need to use
+        #pet=safe_h5py_open(row.pet, 'r')
+        #label=safe_h5py_open(row.label, 'r')
         minc_pet_f = safe_h5py_open(row.pet, 'r')
         minc_label_f = safe_h5py_open(row.label, 'r')
         pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image']) 
-        #sum pet image if it is a 4d volume
-        if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
         label=np.array(minc_label_f['minc-2.0/']['image']['0']['image']) 
+        #meera
+        #sum pet image if it is a 4d volume
+        #as mentioned in the set_images.py script
+        #we need to figure out which dimension refers to time when you load
+        #an array with nibabel. i think it's the last (ie., 3), but I'm not 100% sure
+        #in that case we would use
+        #time_dimension=3
+
+        time_dimension=0
+        if len(pet.shape) == 4: pet = np.sum(pet, axis=time_dimension)
         pet = normalize(pet)
         offset1=pad_image_dim[1]-temp_image_dim[1]
         offset2=pad_image_dim[2]-temp_image_dim[2]

@@ -238,11 +238,19 @@ def set_valid_samples(images):
     images['valid_samples']=np.repeat(0, images.shape[0])
     images['total_samples']=np.repeat(0, images.shape[0])
     for index, row in images.iterrows():
+        #meera
+        #as i mentioned in the comments in the utils.py script, it would be good if 
+        #your new version of the safe_h5py_open function just returned an array
         minc_pet_f = safe_h5py_open(row.pet, 'r')
         pet=np.array(minc_pet_f['minc-2.0/']['image']['0']['image'])
 
         pet = normalize(pet)
-        if len(pet.shape) == 4: pet = np.sum(pet, axis=0)
+        #meera
+        #If a 4D image is used, then the next two lines just sums over the time dimension.
+        #With minc files the time dimension is the first (i.e., 0) dimension, but I think with
+        #nifti images it might be the opposite. 
+        time_dimension=0
+        if len(pet.shape) == 4: pet = np.sum(pet, axis=time_dimension)
 
         images['total_samples'].iloc[index] = pet.shape[0]
         valid_slices = 0

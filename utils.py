@@ -21,9 +21,21 @@ def set_model_name(filename, target_dir, ext='.hdf5'):
 
 def safe_h5py_open(filename, mode):
     '''open hdf5 file, exit elegantly on failure'''
+    #meera
+    # At the moment, this function returns a complicated object "f" that contains
+    # the image array somewhere inside of it. 
+    # You can modify this function so that it uses nibabel to load in images instead
+    # of h5py. In this case, this function should return the actual 3D/4D array.
+    # 
     try :
+        #meera
+        #not sure if this is right, but could try something like :
+        #f = nibabel.Load(filename)
+        #image_array = np.asarray(f.dataobj)
+        #return image_array
         f = h5py.File(filename, mode)
         return f
+
     except OSError :
         print('Error: Could not open', filename)
         exit(1)
